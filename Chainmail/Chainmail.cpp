@@ -5,23 +5,19 @@ using namespace std;
 void Chainmail::setNode()
 {
 	for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
-	{
 		for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
 		{
 			node[idxY][idxX].position.x = static_cast<float>(idxX);
 			node[idxY][idxX].position.y = static_cast<float>(idxY);
 			node[idxY][idxX].time = 100000.0f;
 		}
-	}
 }
 
 // 링크(constraint) 초기화
 void Chainmail::setLink()
 {
 	for (int y = 0; y < ARR_HEIGHT; ++y)
-	{
 		for (int x = 0; x < ARR_WIDTH; ++x)
-		{
 			// 순서 r, l, t, b
 			for (int n = 0; n < NUM_NEIGHBOR; ++n)
 			{
@@ -35,8 +31,6 @@ void Chainmail::setLink()
 				link[y][x][n].maxDy = 1.25f;
 				link[y][x][n].maxVrtDx = 0.5f;
 			}
-		}
-	}
 }
 
 void Chainmail::resetTime()
@@ -114,7 +108,6 @@ void Chainmail::propagate()
 
 		// loop 시작
 		for (int y = 0; y < ARR_HEIGHT; ++y)
-		{
 			for (int x = 0; x < ARR_WIDTH; ++x)
 			{
 				// 살짝 수정 필요 (pair 사용하지말기)
@@ -133,13 +126,13 @@ void Chainmail::propagate()
 						if ((minTimeNeighbor.position.x - node[y][x].position.x) < link[y][x][mtnDir].minDx)
 							node[y][x].position.x = minTimeNeighbor.position.x + link[y][x][mtnDir].minDx;
 						else if ((minTimeNeighbor.position.x - node[y][x].position.x) > link[y][x][mtnDir].maxDx)
-							node[y][x].position.x = minTimeNeighbor.position.x + link[y][x][mtnDir].maxDx;
+							node[y][x].position.x = minTimeNeighbor.position.x - link[y][x][mtnDir].maxDx; // 최대 차이만큼 빼서 더한다. 아니면 값이 커지는 오류
 
 						if ((node[y][x].position.y - minTimeNeighbor.position.y) < -link[y][x][mtnDir].maxHrzDy)
 							node[y][x].position.y = minTimeNeighbor.position.y - link[y][x][mtnDir].maxHrzDy;
 						else if ((node[y][x].position.y - minTimeNeighbor.position.y) > link[y][x][mtnDir].maxHrzDy)
 							node[y][x].position.y = minTimeNeighbor.position.y + link[y][x][mtnDir].maxHrzDy;
-						
+
 						break;
 
 					case LEFT:
@@ -152,7 +145,7 @@ void Chainmail::propagate()
 							node[y][x].position.y = minTimeNeighbor.position.y - link[y][x][mtnDir].maxHrzDy;
 						else if ((node[y][x].position.y - minTimeNeighbor.position.y) > link[y][x][mtnDir].maxHrzDy)
 							node[y][x].position.y = minTimeNeighbor.position.y + link[y][x][mtnDir].maxHrzDy;
-						
+
 						break;
 
 					case TOP:
@@ -165,14 +158,14 @@ void Chainmail::propagate()
 							node[y][x].position.x = minTimeNeighbor.position.x - link[y][x][mtnDir].maxVrtDx;
 						else if ((node[y][x].position.x - minTimeNeighbor.position.x) > link[y][x][mtnDir].maxVrtDx)
 							node[y][x].position.x = minTimeNeighbor.position.x + link[y][x][mtnDir].maxVrtDx;
-						
+
 						break;
 
 					case BOTTOM:
 						if ((minTimeNeighbor.position.y - node[y][x].position.y) < link[y][x][mtnDir].minDy)
 							node[y][x].position.y = minTimeNeighbor.position.y + link[y][x][mtnDir].minDy;
 						else if ((minTimeNeighbor.position.y - node[y][x].position.y) > link[y][x][mtnDir].maxDy)
-							node[y][x].position.y = minTimeNeighbor.position.y + link[y][x][mtnDir].maxDy;
+							node[y][x].position.y = minTimeNeighbor.position.y - link[y][x][mtnDir].maxDy; // 최대 차이만큼 빼서 더한다. 아니면 값이 커지는 오류
 
 						if ((node[y][x].position.x - minTimeNeighbor.position.x) < -link[y][x][mtnDir].maxVrtDx)
 							node[y][x].position.x = minTimeNeighbor.position.x - link[y][x][mtnDir].maxVrtDx;
@@ -187,7 +180,6 @@ void Chainmail::propagate()
 					isMoved = true; // 움직였다고 체크
 				}
 			}
-		}
 	}
 }
 

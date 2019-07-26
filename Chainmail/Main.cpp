@@ -3,19 +3,28 @@
 #include "Chainmail.h"
 using namespace std;
 
-#define ORTHO_BOUND (ARR_WIDTH * .8)
+// 노드 개수 조절, 창 크기 조절은
+// DefConstants.h에서 변경할 수 있다.
 
-#define TARGET_X 10
-#define TARGET_Y 10
+// 변화할 위치 변수 설정 가능 (빨간색 고리)
+#define TARGET_X 8
+#define TARGET_Y 8
+
+
+// gl function들은 세인이형 초기 코드 참고하였음
+#define ORTHO_BOUND (ARR_WIDTH * .8)
 
 int dragStartX;
 int dragStartY;
 bool dragging = false;
 
+// 노드 정보 출력(좌표, timestamp)
+void printNode();
+
+
+// 체인메일 클래스 변수
 Chainmail c;
 
-
-void printNode();
 
 // display function
 void displayFunc()
@@ -23,7 +32,7 @@ void displayFunc()
 	glClear(GL_COLOR_BUFFER_BIT);
 	glColor3f(1.0, 1.0, 1.0);
 
-	for (int i = 0; i < ARR_HEIGHT; i++) 
+	for (int i = 0; i < ARR_HEIGHT; i++)
 	{
 		for (int j = 0; j < ARR_WIDTH; j++)
 		{
@@ -118,6 +127,7 @@ int main(int argc, char* argv[])
 
 	glutMainLoop();
 }
+
 
 void printNode()
 {
