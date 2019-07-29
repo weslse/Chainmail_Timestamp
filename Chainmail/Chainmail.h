@@ -28,5 +28,7 @@ public:
 
 	void propagate();
 	void relax();
+	void relax_spring();
+	void relax_sein();
 };
 

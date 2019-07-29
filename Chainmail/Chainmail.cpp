@@ -1,4 +1,5 @@
 #include "Chainmail.h"
+#include "Vec3.h"
 using namespace std;
 
 // 노드(Point) 초기화
@@ -52,7 +53,7 @@ void Chainmail::movePosition(const int x, const int y, const float mvX, const fl
 	node[y][x].time = 0.0f;
 
 	propagate();
-	relax();
+	//relax();
 }
 
 // time이 가장 빠른 노드와 방향을 리턴한다.
@@ -186,5 +187,69 @@ void Chainmail::propagate()
 // 평활화(relaxation) 과정
 void Chainmail::relax()
 {
-	//resetTime();
+	relax_spring();
+	//relax_sein();
+}
+
+void Chainmail::relax_spring()
+{
+	// 힘을 이용한 방식. 고전적
+	//for (int z = 0; z < ARR_DEPTH; ++z)
+	for (int y = 0; y < ARR_HEIGHT; ++y)
+	{
+		for (int x = 0; x < ARR_WIDTH; ++x)
+		{
+			Vec3 targetPos = node[y][x].position;
+			Vec3 noMeaningVec = targetPos;
+			Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : node[y][x + 1];
+			Vec3 nLeft = (x == 0) ? noMeaningVec : node[y][x - 1];
+			Vec3 nTop = (y == 0) ? noMeaningVec : node[y - 1][x];
+			Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[y + 1][x];
+
+			float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
+			float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
+			float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
+			float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
+
+			Vec3 totalF = (nRight - targetPos)*((nRight - targetPos).dst() - 1) * kRight;
+			totalF += (nLeft - targetPos)*((nLeft - targetPos).dst() - 1) * kLeft;
+			totalF += (nTop - targetPos)*((nTop - targetPos).dst() - 1) * kTop;
+			totalF += (nBottom - targetPos)*((nBottom - targetPos).dst() - 1) * kBottom;
+
+			float delta = 0.01f;
+			Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
+
+			targetPos+= mov;
+			node[y][x].position.x = targetPos.x;
+			node[y][x].position.y = targetPos.y;
+			//node[y][x].position.z = targetPos.z;
+		}
+	}
+}
+
+void Chainmail::relax_sein()
+{
+	// 에너지를 이용한 방식=합력이 0인 에너지 최소점을 구하는 방정식을 푼 방법. 근사적
+
+	// 축에 따라 각기 다르게
+
+	//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
+
+	//float goal_posx = (rightx - 1 - mex)*right.k + (leftx + 1 - mex)*left.k + (topx - mex)*top.k ...; // 이 식을 축별로 근사
+
+	//float goal_posy = (righty - mey)*right.k + (lefty - mey)*left.k + (topy - 1 - mey)*top.k ...; // 이 식을 축별로 근사
+
+
+
+	//Vec3 goal_pos = (goal_posx, goal_posy, goal_posz);
+
+	//// 진동 감쇠
+
+	//Vec3 mov = goal_pos - me;
+
+	//if (mov 가 적당하게 커야만 > T)
+
+	//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
+
+	//	me = goal_pos;
 }

@@ -1,11 +1,19 @@
 #pragma once
 
-typedef struct {
-	struct Position {
-		float x;
-		float y;
-	} position;
+// 오른쪽, 왼쪽, 위, 아래
+enum Direction
+{
+	RIGHT = 0, LEFT, TOP, BOTTOM
+};
 
+typedef struct {
+	float x;
+	float y;
+	float z;
+} Position;
+
+typedef struct {
+	Position position;
 	float time;
 } Node;
 
