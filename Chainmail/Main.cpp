@@ -7,8 +7,8 @@ using namespace std;
 // DefConstants.h에서 변경할 수 있다.
 
 // 변화할 위치 변수 설정 가능 (빨간색 고리)
-#define TARGET_X 15
-#define TARGET_Y 15
+#define TARGET_X 8
+#define TARGET_Y 8
 
 
 // gl function들은 세인이형 초기 코드 참고하였음
@@ -36,8 +36,18 @@ void displayFunc()
 	{
 		for (int j = 0; j < ARR_WIDTH; j++)
 		{
-			float xPos = c.node[i][j].position.x;
-			float yPos = c.node[i][j].position.y;
+			float xPos = 0.f;
+			float yPos = 0.f;
+			// true면 nodeCopy를 렌더링
+			if (c.pingPongCnt) {
+				xPos = c.nodeCopy[i][j].position.x;
+				yPos = c.nodeCopy[i][j].position.y;
+			}
+			// false면 node를 렌더링
+			else {
+				xPos = c.node[i][j].position.x;
+				yPos = c.node[i][j].position.y;
+			}
 
 			if ((j == TARGET_X) && (i == TARGET_Y))
 				glColor3f(1, 0, 0);
@@ -102,7 +112,7 @@ void motionFunc(GLint x, GLint y)
 	}
 }
 
-void idleFunc(){
+void idleFunc() {
 	c.relax();
 	displayFunc();
 }
@@ -129,7 +139,7 @@ int main(int argc, char* argv[])
 	glutReshapeFunc(reshapeFunc);
 	glutMouseFunc(clickFunc);
 	glutMotionFunc(motionFunc);
-	glutIdleFunc(idleFunc);
+	//glutIdleFunc(idleFunc);
 	glutMainLoop();
 }
 

@@ -38,7 +38,7 @@ void Chainmail::resetTime()
 {
 	for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
 		for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
-			node[idxY][idxX].time = 100000.0f;
+			node[idxY][idxX].time = nodeCopy[idxY][idxX].time = 100000.0f;
 }
 
 // (x', y') = (x + mvX, y + mvY)
@@ -53,7 +53,7 @@ void Chainmail::movePosition(const int x, const int y, const float mvX, const fl
 	node[y][x].time = 0.0f;
 
 	propagate();
-	//relax();
+	relax();
 }
 
 // time이 가장 빠른 노드와 방향을 리턴한다.
@@ -93,6 +93,8 @@ const pair<Node, Direction> Chainmail::minTimeNeighborDir(const int x, const int
 	return make_pair(minTimeNeighbor, mtnDir);
 }
 
+
+
 // 전파(propagation) 과정
 void Chainmail::propagate()
 {
@@ -111,7 +113,7 @@ void Chainmail::propagate()
 		for (int y = 0; y < ARR_HEIGHT; ++y)
 			for (int x = 0; x < ARR_WIDTH; ++x)
 			{
-				// 살짝 수정 필요 (pair 사용하지말기)
+				// 살짝 수정 필요 (pair 사용하지말기-> CUDA로 넘어갈때 바로 변경하기 힘듬)
 				auto pair_NeighborDir = minTimeNeighborDir(x, y);
 				Node minTimeNeighbor = pair_NeighborDir.first; // minTimeNeighbor
 				Direction mtnDir = pair_NeighborDir.second; // neighborDir
@@ -125,7 +127,7 @@ void Chainmail::propagate()
 					{
 					case RIGHT:
 						if ((minTimeNeighbor.position.x - node[y][x].position.x) < link[y][x][mtnDir].minDx)
-							node[y][x].position.x = minTimeNeighbor.position.x + link[y][x][mtnDir].minDx;
+							node[y][x].position.x = minTimeNeighbor.position.x - link[y][x][mtnDir].minDx; // 우측노드보다 값이 작은 위치로 보내야함
 						else if ((minTimeNeighbor.position.x - node[y][x].position.x) > link[y][x][mtnDir].maxDx)
 							node[y][x].position.x = minTimeNeighbor.position.x - link[y][x][mtnDir].maxDx; // 최대 차이만큼 빼서 더한다. 아니면 값이 커지는 오류
 
@@ -164,7 +166,7 @@ void Chainmail::propagate()
 
 					case BOTTOM:
 						if ((minTimeNeighbor.position.y - node[y][x].position.y) < link[y][x][mtnDir].minDy)
-							node[y][x].position.y = minTimeNeighbor.position.y + link[y][x][mtnDir].minDy;
+							node[y][x].position.y = minTimeNeighbor.position.y - link[y][x][mtnDir].minDy; // 바텀노드보다 값이 작은 위치로 보내야함
 						else if ((minTimeNeighbor.position.y - node[y][x].position.y) > link[y][x][mtnDir].maxDy)
 							node[y][x].position.y = minTimeNeighbor.position.y - link[y][x][mtnDir].maxDy; // 최대 차이만큼 빼서 더한다. 아니면 값이 커지는 오류
 
@@ -187,69 +189,223 @@ void Chainmail::propagate()
 // 평활화(relaxation) 과정
 void Chainmail::relax()
 {
-	relax_spring();
-	//relax_sein();
+	//relax_spring();
+	relax_sein();
 }
 
+// 힘을 이용한 방식. 고전적
 void Chainmail::relax_spring()
 {
-	// 힘을 이용한 방식. 고전적
-	//for (int z = 0; z < ARR_DEPTH; ++z)
-	for (int y = 0; y < ARR_HEIGHT; ++y)
+	// false면 node를 보고 nodeCopy에 값 저장, cnt증가(true로 만들어 nodeCopy 렌더링)
+	if (!pingPongCnt)
 	{
-		for (int x = 0; x < ARR_WIDTH; ++x)
-		{
-			Vec3 targetPos = node[y][x].position;
-			Vec3 noMeaningVec = targetPos;
-			Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : node[y][x + 1];
-			Vec3 nLeft = (x == 0) ? noMeaningVec : node[y][x - 1];
-			Vec3 nTop = (y == 0) ? noMeaningVec : node[y - 1][x];
-			Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[y + 1][x];
+		//for (int z = 0; z < ARR_DEPTH; ++z)
+		for (int y = 0; y < ARR_HEIGHT; ++y)
+			for (int x = 0; x < ARR_WIDTH; ++x)
+			{
+				Vec3 targetPos = node[y][x].position;
+				Vec3 noMeaningVec = targetPos;
+				Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : node[y][x + 1];
+				Vec3 nLeft = (x == 0) ? noMeaningVec : node[y][x - 1];
+				Vec3 nTop = (y == 0) ? noMeaningVec : node[y - 1][x];
+				Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[y + 1][x];
 
-			float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
-			float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
-			float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
-			float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
+				float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
+				float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
+				float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
+				float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
 
-			Vec3 totalF = (nRight - targetPos)*((nRight - targetPos).dst() - 1) * kRight;
-			totalF += (nLeft - targetPos)*((nLeft - targetPos).dst() - 1) * kLeft;
-			totalF += (nTop - targetPos)*((nTop - targetPos).dst() - 1) * kTop;
-			totalF += (nBottom - targetPos)*((nBottom - targetPos).dst() - 1) * kBottom;
+				Vec3 totalF = (nRight - targetPos)*((nRight - targetPos).dst() - 1) * kRight;
+				totalF += (nLeft - targetPos)*((nLeft - targetPos).dst() - 1) * kLeft;
+				totalF += (nTop - targetPos)*((nTop - targetPos).dst() - 1) * kTop;
+				totalF += (nBottom - targetPos)*((nBottom - targetPos).dst() - 1) * kBottom;
 
-			float delta = 0.01f;
-			Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
+				float delta = 0.01f;
+				Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
 
-			targetPos+= mov;
-			node[y][x].position.x = targetPos.x;
-			node[y][x].position.y = targetPos.y;
-			//node[y][x].position.z = targetPos.z;
-		}
+				targetPos += mov;
+				nodeCopy[y][x].position.x = targetPos.x;
+				nodeCopy[y][x].position.y = targetPos.y;
+				//node[y][x].position.z = targetPos.z;
+			}
 	}
+	// true면 nodeCopy를 보고 node에 값 저장, cnt증가(false로 만들어 node 렌더링)
+	else
+	{
+		for (int y = 0; y < ARR_HEIGHT; ++y)
+			for (int x = 0; x < ARR_WIDTH; ++x)
+			{
+				Vec3 targetPos = nodeCopy[y][x].position;
+				Vec3 noMeaningVec = targetPos;
+				Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : nodeCopy[y][x + 1];
+				Vec3 nLeft = (x == 0) ? noMeaningVec : nodeCopy[y][x - 1];
+				Vec3 nTop = (y == 0) ? noMeaningVec : nodeCopy[y - 1][x];
+				Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : nodeCopy[y + 1][x];
+
+				float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
+				float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
+				float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
+				float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
+
+				Vec3 totalF = (nRight - targetPos)*((nRight - targetPos).dst() - 1) * kRight;
+				totalF += (nLeft - targetPos)*((nLeft - targetPos).dst() - 1) * kLeft;
+				totalF += (nTop - targetPos)*((nTop - targetPos).dst() - 1) * kTop;
+				totalF += (nBottom - targetPos)*((nBottom - targetPos).dst() - 1) * kBottom;
+
+				float delta = 0.01f;
+				Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
+
+				targetPos += mov;
+				node[y][x].position.x = targetPos.x;
+				node[y][x].position.y = targetPos.y;
+				//node[y][x].position.z = targetPos.z;
+			}
+	}
+
+	pingPongCnt = !pingPongCnt;
 }
 
+// 에너지를 이용한 방식=합력이 0인 에너지 최소점을 구하는 방정식을 푼 방법. 근사적
+// 축에 따라 각기 다르게
 void Chainmail::relax_sein()
 {
-	// 에너지를 이용한 방식=합력이 0인 에너지 최소점을 구하는 방정식을 푼 방법. 근사적
+	float maxF = 4.f;
 
-	// 축에 따라 각기 다르게
+	// false면 node를 보고 nodeCopy에 값 저장, cnt증가(true로 만들어 nodeCopy 렌더링)
+	if (!pingPongCnt)
+	{
+		for (int y = 0; y < ARR_HEIGHT; ++y)
+			for (int x = 0; x < ARR_WIDTH; ++x)
+			{
+				Vec3 targetPos = node[y][x].position;
+				Vec3 noMeaningVec = targetPos;
+				Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : node[y][x + 1];
+				Vec3 nLeft = (x == 0) ? noMeaningVec : node[y][x - 1];
+				Vec3 nTop = (y == 0) ? noMeaningVec : node[y - 1][x];
+				Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[y + 1][x];
 
-	//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
+				float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
+				float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
+				float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
+				float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
+				float kSum = kRight + kLeft + kTop + kBottom;
+				float kSumInv = 1.f / (kRight + kLeft + kTop + kBottom);
+				//Vec3 plasticity = Vec3(fminf((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx)/2.f, link[y][x][RIGHT].maxVrtDx),
+				//	fminf((link[y][x][TOP].maxDy - link[y][x][TOP].minDy) / 2.f, link[y][x][RIGHT].maxHrzDy), 0.0f);
+				Vec3 plasticity = Vec3(0.425f, 0.425f, 0.0f);
+				plasticity *= (1.f - powf(0.7f, 0.16f));
 
-	//float goal_posx = (rightx - 1 - mex)*right.k + (leftx + 1 - mex)*left.k + (topx - mex)*top.k ...; // 이 식을 축별로 근사
+				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
+				float goal_Fx = (nRight.x - 1 - targetPos.x)*kRight + (nLeft.x + 1 - targetPos.x)*kLeft
+					+ (nTop.x - targetPos.x)*kTop + (nBottom.x - targetPos.x)*kBottom;
+				float goal_Fy = (nRight.y - targetPos.y)*kRight + (nLeft.y - targetPos.y)*kLeft
+					+ (nTop.y + 1 - targetPos.y)*kTop + (nBottom.y - 1 - targetPos.y)*kBottom;
+				float goal_Fz = 0.f;
 
-	//float goal_posy = (righty - mey)*right.k + (lefty - mey)*left.k + (topy - 1 - mey)*top.k ...; // 이 식을 축별로 근사
+				Vec3 goal_F = Vec3(goal_Fx, goal_Fy, goal_Fz);
+				Vec3 goal_pos = goal_F * kSumInv;
 
+				//// 진동 감쇠
+				Vec3 mov_pos = goal_pos - targetPos;
+				//if (mov 가 적당하게 커야만 > T)
+				//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
+				if (mov_pos.x < -plasticity.x) {// elasticity) {
+					//	me = goal_pos;
+					targetPos.x -= plasticity.x;
+				}
+				else if (mov_pos.x > plasticity.x) {// elasticity) {
+				   //	me = goal_pos;
+					targetPos.x += plasticity.x;
+				}
 
+				if (mov_pos.y < -plasticity.y) {// elasticity) {
+					//	me = goal_pos;
+					targetPos.y -= plasticity.y;
+				}
+				else if (mov_pos.y > plasticity.y) {// elasticity) {
+				   //	me = goal_pos;
+					targetPos.y += plasticity.y;
+				}
 
-	//Vec3 goal_pos = (goal_posx, goal_posy, goal_posz);
+				//if (mov_pos.z < -plasticity.z) {// elasticity) {
+				//	//	me = goal_pos;
+				//	targetPos.z -= plasticity.z;
+				//}
+				//else if (mov_pos.z > plasticity.z) {// elasticity) {
+				//   //	me = goal_pos;
+				//	targetPos.z += plasticity.z;
+				//}
 
-	//// 진동 감쇠
+				nodeCopy[y][x].position.x = targetPos.x;
+				nodeCopy[y][x].position.y = targetPos.y;
+			}
+	}
+	// true면 nodeCopy를 보고 node에 값 저장, cnt증가(false로 만들어 node 렌더링)
+	else
+	{
+		for (int y = 0; y < ARR_HEIGHT; ++y)
+			for (int x = 0; x < ARR_WIDTH; ++x)
+			{
+				Vec3 targetPos = nodeCopy[y][x].position;
+				Vec3 noMeaningVec = targetPos;
+				Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : nodeCopy[y][x + 1];
+				Vec3 nLeft = (x == 0) ? noMeaningVec : nodeCopy[y][x - 1];
+				Vec3 nTop = (y == 0) ? noMeaningVec : nodeCopy[y - 1][x];
+				Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : nodeCopy[y + 1][x];
 
-	//Vec3 mov = goal_pos - me;
+				float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
+				float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
+				float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
+				float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
+				float kSum = kRight + kLeft + kTop + kBottom;
+				float kSumInv = 1.f / (kRight + kLeft + kTop + kBottom);
+				Vec3 plasticity = Vec3(0.425f, 0.425f, 0.0f);
+				plasticity *= (1.f - powf(0.7f, 0.16f));
 
-	//if (mov 가 적당하게 커야만 > T)
+				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
+				float goal_Fx = (nRight.x - 1 - targetPos.x)*kRight + (nLeft.x + 1 - targetPos.x)*kLeft
+					+ (nTop.x - targetPos.x)*kTop + (nBottom.x - targetPos.x)*kBottom;
+				float goal_Fy = (nRight.y - targetPos.y)*kRight + (nLeft.y - targetPos.y)*kLeft
+					+ (nTop.y + 1 - targetPos.y)*kTop + (nBottom.y - 1 - targetPos.y)*kBottom;
+				float goal_Fz = 0.f;
 
-	//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
+				Vec3 goal_F = Vec3(goal_Fx, goal_Fy, goal_Fz);
+				Vec3 goal_pos = goal_F * kSumInv;
 
-	//	me = goal_pos;
+				//// 진동 감쇠
+				Vec3 mov_pos = goal_pos - targetPos;
+				//if (mov 가 적당하게 커야만 > T)
+				//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
+				if (mov_pos.x < -plasticity.x) {// elasticity) {
+					//	me = goal_pos;
+					targetPos.x -= plasticity.x;
+				}else if (mov_pos.x > plasticity.x) {// elasticity) {
+					//	me = goal_pos;
+					targetPos.x += plasticity.x;
+				}
+
+				if (mov_pos.y < -plasticity.y) {// elasticity) {
+					//	me = goal_pos;
+					targetPos.y -= plasticity.y;
+				}
+				else if (mov_pos.y > plasticity.y) {// elasticity) {
+				   //	me = goal_pos;
+					targetPos.y += plasticity.y;
+				}
+
+				//if (mov_pos.z < -plasticity.z) {// elasticity) {
+				//	//	me = goal_pos;
+				//	targetPos.z -= plasticity.z;
+				//}
+				//else if (mov_pos.z > plasticity.z) {// elasticity) {
+				//   //	me = goal_pos;
+				//	targetPos.z += plasticity.z;
+				//}
+
+				node[y][x].position.x = targetPos.x;
+				node[y][x].position.y = targetPos.y;
+			}
+	}
+
+	pingPongCnt = !pingPongCnt;
 }
