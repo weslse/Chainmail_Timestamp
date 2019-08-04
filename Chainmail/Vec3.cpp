@@ -92,7 +92,7 @@ const float Vec3::dst()
 	return getLength();
 }
 
-void Vec3::normailze()
+void Vec3::normalize()
 {
 	const float invLen = 1.f / getLength();
 	(*this)*=invLen;

@@ -28,6 +28,6 @@ public:
 	
 	const float getLength();
 	const float dst();
-	void normailze();
+	void normalize();
 };
 
