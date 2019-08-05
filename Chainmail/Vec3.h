@@ -20,6 +20,7 @@ public:
 	Vec3 operator+(const Vec3& v);
 	Vec3 operator-(const Vec3& v);
 	Vec3 operator*(const float c);
+	const float operator*(const Vec3 v); // dot Product
 	Vec3 operator=(const Node& n);
 	Vec3 operator=(const Position& n);
 	Vec3& operator+=(const Vec3& v);
@@ -28,6 +29,7 @@ public:
 	
 	const float getLength();
 	const float dst();
+	const float getMagnitude();
 	void normalize();
 };
 

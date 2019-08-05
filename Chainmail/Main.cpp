@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
 	glutReshapeFunc(reshapeFunc);
 	glutMouseFunc(clickFunc);
 	glutMotionFunc(motionFunc);
-	//glutIdleFunc(idleFunc);
+	glutIdleFunc(idleFunc);
 	glutMainLoop();
 }
 

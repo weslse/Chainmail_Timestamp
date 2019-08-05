@@ -45,6 +45,11 @@ Vec3 Vec3::operator*(const float c)
 	return Vec3(x*c, y*c, z*c);
 }
 
+const float Vec3::operator*(const Vec3 v)
+{
+	return (x * v.x + y * v.y + z * v.z);
+}
+
 Vec3 Vec3::operator=(const Node& n)
 {
 	return Vec3(n);
@@ -89,11 +94,19 @@ const float Vec3::getLength()
 
 const float Vec3::dst()
 {
-	return getLength();
+	return fabsf(getLength());
+}
+
+const float Vec3::getMagnitude()
+{
+	return fabsf(getLength());
 }
 
 void Vec3::normalize()
 {
+	if (x == 0 && y == 0 && z == 0)
+		return;
+
 	const float invLen = 1.f / getLength();
 	(*this)*=invLen;
 }
