@@ -30,32 +30,37 @@ Vec3::Vec3(float * arr)
 	z = arr[2];
 }
 
-Vec3 Vec3::operator+(const Vec3& v)
+Vec3 Vec3::operator+(const Vec3& v) const
 {
 	return Vec3(x + v.x, y + v.y, z + v.z);
 }
 
-Vec3 Vec3::operator-(const Vec3& v)
+Vec3 Vec3::operator-(const Vec3& v) const
 {
 	return Vec3(x - v.x, y - v.y, z - v.z);
 }
 
-Vec3 Vec3::operator*(const float c)
+Vec3 Vec3::operator-() const
+{
+	return Vec3(-x, -y, -z);
+}
+
+Vec3 Vec3::operator*(const float c) const
 {
 	return Vec3(x*c, y*c, z*c);
 }
 
-const float Vec3::operator*(const Vec3 v)
+const float Vec3::operator*(const Vec3 v) const
 {
 	return (x * v.x + y * v.y + z * v.z);
 }
 
-Vec3 Vec3::operator=(const Node& n)
+Vec3 Vec3::operator=(const Node& n) const
 {
 	return Vec3(n);
 }
 
-Vec3 Vec3::operator=(const Position& p)
+Vec3 Vec3::operator=(const Position& p) const
 {
 	return Vec3(p);
 }
@@ -87,19 +92,19 @@ Vec3 & Vec3::operator*=(const float c)
 	return (*this);
 }
 
-const float Vec3::getLength()
+const float Vec3::getLength() const
 {
 	return sqrtf(x * x + y * y + z * z);
 }
 
-const float Vec3::dst()
+const float Vec3::dst() const
 {
-	return fabsf(getLength());
+	return getLength();
 }
 
-const float Vec3::getMagnitude()
+const float Vec3::getMagnitude() const
 {
-	return fabsf(getLength());
+	return getLength();
 }
 
 void Vec3::normalize()

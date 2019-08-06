@@ -12,14 +12,10 @@ class Chainmail
 {
 
 public:
-	// to display
-	Node node[ARR_HEIGHT][ARR_WIDTH];
+	Node node[NUM_MEMSET][ARR_HEIGHT][ARR_WIDTH]; // pingpong scheme
 	Constraint link[ARR_HEIGHT][ARR_WIDTH][NUM_NEIGHBOR];
 
-	bool pingPongCnt = false;
-
-	// to relaxation
-	Node nodeCopy[ARR_HEIGHT][ARR_WIDTH];
+	int memIdx = 0;
 
 public:
 	Chainmail() = default;
@@ -32,8 +28,8 @@ public:
 	void movePosition(const int x, const int y, const float mvX, const float mvY);
 
 	const std::pair<Node, Direction> minTimeNeighborDir(const int x, const int y) const;
-
 	void propagate();
+	
 	void relax();
 	void relax_spring();
 	void relax_sein();

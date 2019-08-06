@@ -3,12 +3,8 @@
 #include "Chainmail.h"
 using namespace std;
 
-// 노드 개수 조절, 창 크기 조절은
+// 노드 개수 조절, 창 크기 조절, 조절 위치 변수는
 // DefConstants.h에서 변경할 수 있다.
-
-// 변화할 위치 변수 설정 가능 (빨간색 고리)
-#define TARGET_X 8
-#define TARGET_Y 8
 
 
 // gl function들은 세인이형 초기 코드 참고하였음
@@ -32,23 +28,14 @@ void displayFunc()
 	glClear(GL_COLOR_BUFFER_BIT);
 	glColor3f(1.0, 1.0, 1.0);
 
+	int mIdx = c.memIdx;
 	for (int i = 0; i < ARR_HEIGHT; i++)
 	{
 		for (int j = 0; j < ARR_WIDTH; j++)
 		{
-			float xPos = 0.f;
-			float yPos = 0.f;
-			// true면 nodeCopy를 렌더링
-			if (c.pingPongCnt) {
-				xPos = c.nodeCopy[i][j].position.x;
-				yPos = c.nodeCopy[i][j].position.y;
-			}
-			// false면 node를 렌더링
-			else {
-				xPos = c.node[i][j].position.x;
-				yPos = c.node[i][j].position.y;
-			}
-
+			float xPos = c.node[mIdx][i][j].position.x;
+			float yPos = c.node[mIdx][i][j].position.y;
+	
 			if ((j == TARGET_X) && (i == TARGET_Y))
 				glColor3f(1, 0, 0);
 			else
@@ -139,13 +126,14 @@ int main(int argc, char* argv[])
 	glutReshapeFunc(reshapeFunc);
 	glutMouseFunc(clickFunc);
 	glutMotionFunc(motionFunc);
-	glutIdleFunc(idleFunc);
+	//glutIdleFunc(idleFunc);
 	glutMainLoop();
 }
 
 
 void printNode()
 {
+	int mIdx = c.memIdx;
 	// 좌표와 시간 출력
 	for (int i = 0; i < ARR_HEIGHT; ++i)
 	{
@@ -153,9 +141,9 @@ void printNode()
 		{
 			printf("node[%d][%d] : %f %f %f\n",
 				i, j,
-				c.node[i][j].position.x,
-				c.node[i][j].position.y,
-				c.node[i][j].time);
+				c.node[mIdx][i][j].position.x,
+				c.node[mIdx][i][j].position.y,
+				c.node[mIdx][i][j].time);
 		}
 		printf("\n");
 	}

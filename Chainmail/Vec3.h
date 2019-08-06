@@ -17,19 +17,20 @@ public:
 	~Vec3() = default;
 
 public:
-	Vec3 operator+(const Vec3& v);
-	Vec3 operator-(const Vec3& v);
-	Vec3 operator*(const float c);
-	const float operator*(const Vec3 v); // dot Product
-	Vec3 operator=(const Node& n);
-	Vec3 operator=(const Position& n);
+	Vec3 operator+(const Vec3& v) const;
+	Vec3 operator-(const Vec3& v) const;
+	Vec3 operator-() const;
+	Vec3 operator*(const float c) const;
+	const float operator*(const Vec3 v) const; // dot Product
+	Vec3 operator=(const Node& n) const;
+	Vec3 operator=(const Position& n) const;
 	Vec3& operator+=(const Vec3& v);
 	Vec3& operator-=(const Vec3& v);
 	Vec3& operator*=(const float c);
-	
-	const float getLength();
-	const float dst();
-	const float getMagnitude();
+
+	const float getLength() const;
+	const float dst() const;
+	const float getMagnitude() const;
 	void normalize();
 };
 
