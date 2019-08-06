@@ -187,6 +187,7 @@ void Chainmail::propagate()
 }
 
 // 평활화(relaxation) 과정
+// 코드 정리 필요
 void Chainmail::relax()
 {
 	relax_spring();
@@ -217,6 +218,7 @@ void Chainmail::relax_spring()
 				float kTop = (y == 0) ? 0.f : 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy + eps);
 				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy + eps);
 
+				// k값에 비례
 				const float kDampRight = 1.f * kRight;
 				const float kDampLeft = 1.f * kLeft;
 				const float kDampTop = 1.f * kTop;
@@ -224,8 +226,8 @@ void Chainmail::relax_spring()
 
 				Vec3 rightF = nRight - targetPos;
 				rightF.normalize();
-				rightF = (rightF * (1 - (nRight - targetPos).dst()) * kRight)
-					+ rightF * ((nRight - targetPos)*rightF) * kDampRight;
+				rightF = (rightF * (1 - (nRight - targetPos).dst()) * kRight) //   탄성력
+					+ rightF * ((nRight - targetPos)*rightF) * kDampRight;    // + 감쇠력
 
 				Vec3 leftF = nLeft - targetPos;
 				leftF.normalize();
@@ -244,13 +246,14 @@ void Chainmail::relax_spring()
 
 				Vec3 totalF = rightF + leftF + topF + bottomF;
 
-				if (fabsf((1.f / (kRight + eps) - 1.f / (kLeft + eps)) >= fabsf(totalF.x) && fabsf(totalF.x) >= 0.f)
-					&& fabsf((1.f / (kBottom + eps) - 1.f / (kTop + eps)) >= fabsf(totalF.y) && fabsf(totalF.y) >= 0.f))
-				{
+				// 움직일 수 있는 조건?
+				//if (fabsf((1.f / (kRight + eps) - 1.f / (kLeft + eps)) >= fabsf(totalF.x) && fabsf(totalF.x) >= 0.f)
+				//	&& fabsf((1.f / (kBottom + eps) - 1.f / (kTop + eps)) >= fabsf(totalF.y) && fabsf(totalF.y) >= 0.f))
+				//{
 					float delta = 0.001f;
 					Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
 					targetPos += mov;
-				}
+				//}
 
 				nodeCopy[y][x].position.x = targetPos.x;
 				nodeCopy[y][x].position.y = targetPos.y;
@@ -275,6 +278,7 @@ void Chainmail::relax_spring()
 				float kTop = (y == 0) ? 0.f : 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy + eps);
 				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy + eps);
 
+				// k값에 비례
 				const float kDampRight = 1.f * kRight;
 				const float kDampLeft = 1.f * kLeft;
 				const float kDampTop = 1.f * kTop;
@@ -282,8 +286,8 @@ void Chainmail::relax_spring()
 
 				Vec3 rightF = nRight - targetPos;
 				rightF.normalize();
-				rightF = (rightF * (1 - (nRight - targetPos).dst()) * kRight)
-					+ rightF * ((nRight - targetPos)*rightF) * kDampRight;
+				rightF = (rightF * (1 - (nRight - targetPos).dst()) * kRight) //   탄성력
+					+ rightF * ((nRight - targetPos)*rightF) * kDampRight;    // + 감쇠력
 
 				Vec3 leftF = nLeft - targetPos;
 				leftF.normalize();
@@ -302,13 +306,14 @@ void Chainmail::relax_spring()
 
 				Vec3 totalF = rightF + leftF + topF + bottomF;
 
-				if (fabsf((1.f / (kRight + eps) - 1.f / (kLeft + eps)) >= fabsf(totalF.x) && fabsf(totalF.x) >= 0.f)
-					&& fabsf((1.f / (kBottom + eps) - 1.f / (kTop + eps)) >= fabsf(totalF.y) && fabsf(totalF.y) >= 0.f))
-				{
-					float delta = 0.001f;
-					Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
-					targetPos += mov;
-				}
+				// 움직일 수 있는 조건?
+				//if (fabsf((1.f / (kRight + eps) - 1.f / (kLeft + eps)) >= fabsf(totalF.x) && fabsf(totalF.x) >= 0.f)
+				//	&& fabsf((1.f / (kBottom + eps) - 1.f / (kTop + eps)) >= fabsf(totalF.y) && fabsf(totalF.y) >= 0.f))
+				//{
+				float delta = 0.001f;
+				Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
+				targetPos += mov;
+				//}
 
 				node[y][x].position.x = targetPos.x;
 				node[y][x].position.y = targetPos.y;
@@ -350,7 +355,9 @@ void Chainmail::relax_sein()
 				/*Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
 					fminf(link[y][x][BOTTOM].maxVrtDx, (link[y][x][BOTTOM].maxDx - link[y][x][BOTTOM].minDx) * 0.5f), 0.0f };
 				plasticity *= (1.f - powf(0.7f, 0.16f));*/
-				Vec3 plasticity = { 0.00005f, 0.00005f, 0.f };
+				// k 값에 대응해야함
+				// 현재는 임의의 값
+				Vec3 plasticity = { 0.00005f, 0.00005f, 0.f }; 
 
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
 				float goal_Fx = (nRight.x - 1 - targetPos.x)*kRight + (nLeft.x + 1 - targetPos.x)*kLeft
@@ -409,7 +416,11 @@ void Chainmail::relax_sein()
 				//	Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
 				//fminf(link[y][x][BOTTOM].maxVrtDx, (link[y][x][BOTTOM].maxDx - link[y][x][BOTTOM].minDx) * 0.5f), 0.0f };
 				//	//plasticity *= (1.f - powf(0.7f, 0.16f));
+				// k 값에 대응해야함
+				// 현재는 임의의 값
 				Vec3 plasticity = { 0.00005f, 0.00005f, 0.f };
+
+
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
 				float goal_Fx = (nRight.x - 1 - targetPos.x)*kRight + (nLeft.x + 1 - targetPos.x)*kLeft
 					+ (nTop.x - targetPos.x)*kTop + (nBottom.x - targetPos.x)*kBottom;
@@ -447,149 +458,3 @@ void Chainmail::relax_sein()
 
 	pingPongCnt = !pingPongCnt;
 }
-
-//// 에너지를 이용한 방식=합력이 0인 에너지 최소점을 구하는 방정식을 푼 방법. 근사적
-//// 축에 따라 각기 다르게
-//void Chainmail::relax_sein()
-//{
-//	float maxF = 4.f;
-//	const float eps = 0.000001f;
-//	// false면 node를 보고 nodeCopy에 값 저장, cnt증가(true로 만들어 nodeCopy 렌더링)
-//	if (!pingPongCnt)
-//	{
-//		for (int y = 0; y < ARR_HEIGHT; ++y)
-//			for (int x = 0; x < ARR_WIDTH; ++x)
-//			{
-//				Vec3 targetPos = node[y][x].position;
-//				Vec3 noMeaningVec = targetPos;
-//				Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : node[y][x + 1];
-//				Vec3 nLeft = (x == 0) ? noMeaningVec : node[y][x - 1];
-//				Vec3 nTop = (y == 0) ? noMeaningVec : node[y - 1][x];
-//				Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[y + 1][x];
-//
-//				float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx + eps);
-//				float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx + eps);
-//				float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy + eps);
-//				float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy + eps);
-//				float kSum = kRight + kLeft + kTop + kBottom;
-//				float kSumInv = 1.f / kSum;
-//				//Vec3 plasticity = Vec3(fminf((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx)/2.f, link[y][x][RIGHT].maxVrtDx),
-//				//	fminf((link[y][x][TOP].maxDy - link[y][x][TOP].minDy) / 2.f, link[y][x][RIGHT].maxHrzDy), 0.0f);
-//				Vec3 plasticity = Vec3(0.425f, 0.425f, 0.0f);
-//				plasticity *= (1.f - powf(0.7f, 0.16f));
-//
-//				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
-//				float goal_Fx = (nRight.x - 1 - targetPos.x)*kRight + (nLeft.x + 1 - targetPos.x)*kLeft
-//					+ (nTop.x - targetPos.x)*kTop + (nBottom.x - targetPos.x)*kBottom;
-//				float goal_Fy = (nRight.y - targetPos.y)*kRight + (nLeft.y - targetPos.y)*kLeft
-//					+ (nTop.y + 1 - targetPos.y)*kTop + (nBottom.y - 1 - targetPos.y)*kBottom;
-//				float goal_Fz = 0.f;
-//
-//				Vec3 goal_F = Vec3(goal_Fx, goal_Fy, goal_Fz);
-//				Vec3 goal_pos = goal_F * kSumInv;
-//
-//				//// 진동 감쇠
-//				Vec3 mov_pos = goal_pos - targetPos;
-//				//if (mov 가 적당하게 커야만 > T)
-//				//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
-//				if (mov_pos.x < -plasticity.x) {// elasticity) {
-//					//	me = goal_pos;
-//					targetPos.x -= plasticity.x;
-//				}
-//				else if (mov_pos.x > plasticity.x) {// elasticity) {
-//				   //	me = goal_pos;
-//					targetPos.x += plasticity.x;
-//				}
-//
-//				if (mov_pos.y < -plasticity.y) {// elasticity) {
-//					//	me = goal_pos;
-//					targetPos.y -= plasticity.y;
-//				}
-//				else if (mov_pos.y > plasticity.y) {// elasticity) {
-//				   //	me = goal_pos;
-//					targetPos.y += plasticity.y;
-//				}
-//
-//				//if (mov_pos.z < -plasticity.z) {// elasticity) {
-//				//	//	me = goal_pos;
-//				//	targetPos.z -= plasticity.z;
-//				//}
-//				//else if (mov_pos.z > plasticity.z) {// elasticity) {
-//				//   //	me = goal_pos;
-//				//	targetPos.z += plasticity.z;
-//				//}
-//
-//				nodeCopy[y][x].position.x = targetPos.x;
-//				nodeCopy[y][x].position.y = targetPos.y;
-//			}
-//	}
-//	// true면 nodeCopy를 보고 node에 값 저장, cnt증가(false로 만들어 node 렌더링)
-//	else
-//	{
-//		for (int y = 0; y < ARR_HEIGHT; ++y)
-//			for (int x = 0; x < ARR_WIDTH; ++x)
-//			{
-//				Vec3 targetPos = nodeCopy[y][x].position;
-//				Vec3 noMeaningVec = targetPos;
-//				Vec3 nRight = (x == ARR_WIDTH - 1) ? noMeaningVec : nodeCopy[y][x + 1];
-//				Vec3 nLeft = (x == 0) ? noMeaningVec : nodeCopy[y][x - 1];
-//				Vec3 nTop = (y == 0) ? noMeaningVec : nodeCopy[y - 1][x];
-//				Vec3 nBottom = (y == ARR_HEIGHT - 1) ? noMeaningVec : nodeCopy[y + 1][x];
-//
-//				float kRight = 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
-//				float kLeft = 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
-//				float kTop = 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
-//				float kBottom = 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
-//				float kSum = kRight + kLeft + kTop + kBottom;
-//				float kSumInv = 1.f / (kRight + kLeft + kTop + kBottom);
-//				Vec3 plasticity = Vec3(0.425f, 0.425f, 0.0f);
-//				plasticity *= (1.f - powf(0.7f, 0.16f));
-//
-//				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
-//				float goal_Fx = (nRight.x - 1 - targetPos.x)*kRight + (nLeft.x + 1 - targetPos.x)*kLeft
-//					+ (nTop.x - targetPos.x)*kTop + (nBottom.x - targetPos.x)*kBottom;
-//				float goal_Fy = (nRight.y - targetPos.y)*kRight + (nLeft.y - targetPos.y)*kLeft
-//					+ (nTop.y + 1 - targetPos.y)*kTop + (nBottom.y - 1 - targetPos.y)*kBottom;
-//				float goal_Fz = 0.f;
-//
-//				Vec3 goal_F = Vec3(goal_Fx, goal_Fy, goal_Fz);
-//				Vec3 goal_pos = goal_F * kSumInv;
-//
-//				//// 진동 감쇠
-//				Vec3 mov_pos = goal_pos - targetPos;
-//				//if (mov 가 적당하게 커야만 > T)
-//				//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
-//				if (mov_pos.x < -plasticity.x) {// elasticity) {
-//					//	me = goal_pos;
-//					targetPos.x -= plasticity.x;
-//				}
-//				else if (mov_pos.x > plasticity.x) {// elasticity) {
-//				   //	me = goal_pos;
-//					targetPos.x += plasticity.x;
-//				}
-//
-//				if (mov_pos.y < -plasticity.y) {// elasticity) {
-//					//	me = goal_pos;
-//					targetPos.y -= plasticity.y;
-//				}
-//				else if (mov_pos.y > plasticity.y) {// elasticity) {
-//				   //	me = goal_pos;
-//					targetPos.y += plasticity.y;
-//				}
-//
-//				//if (mov_pos.z < -plasticity.z) {// elasticity) {
-//				//	//	me = goal_pos;
-//				//	targetPos.z -= plasticity.z;
-//				//}
-//				//else if (mov_pos.z > plasticity.z) {// elasticity) {
-//				//   //	me = goal_pos;
-//				//	targetPos.z += plasticity.z;
-//				//}
-//
-//				node[y][x].position.x = targetPos.x;
-//				node[y][x].position.y = targetPos.y;
-//			}
-//	}
-//
-//	pingPongCnt = !pingPongCnt;
-//}
