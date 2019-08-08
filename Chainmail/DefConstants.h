@@ -12,3 +12,9 @@
 // 변화할 위치 변수 설정 가능 (빨간색 고리)
 #define TARGET_X 8
 #define TARGET_Y 8
+
+// epsilon 상수 값
+#define EPS 0.000001f
+
+#define ORIGIN_LEN 1.0f
+

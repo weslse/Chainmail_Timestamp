@@ -191,16 +191,16 @@ void Chainmail::propagate()
 // 평활화(relaxation) 과정
 void Chainmail::relax()
 {
-	relax_spring();
-	//relax_sein();
+	//relax_spring();
+	relax_sein();
 }
 
 // 힘을 이용한 방식. 고전적
 // springF를 자료 구조에 추가해야함
 void Chainmail::relax_spring()
 {
-	constexpr float eps = 0.000001f;
-	for (int i = 0; i < 7; i++) // 임의의 반복 횟수 제한
+	for (int i = 0; i < 8; i++) // 임의의 반복 횟수 제한
+	{
 		for (int y = 0; y < ARR_HEIGHT; ++y)
 			for (int x = 0; x < ARR_WIDTH; ++x)
 			{
@@ -226,49 +226,56 @@ void Chainmail::relax_spring()
 				Vec3 nTPos = nTop.position;
 				Vec3 nBPos = nBottom.position;
 
-				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx + eps);
-				float kLeft = (x == 0) ? 0.f : 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx + eps);
-				float kTop = (y == 0) ? 0.f : 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy + eps);
-				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy + eps);
+				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
+				float kLeft = (x == 0) ? 0.f : 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
+				float kTop = (y == 0) ? 0.f : 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
+				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
 
 				// k값에 비례
-				const float kDampRight = 0.5f * kRight;
-				const float kDampLeft = 0.5f * kLeft;
-				const float kDampTop = 0.5f * kTop;
-				const float kDampBottom = 0.5f * kBottom;
+				const float kDampRight = 10.01f * kRight;
+				const float kDampLeft = 10.01f *kLeft;
+				const float kDampTop = 10.01f *kTop;
+				const float kDampBottom = 10.01f *kBottom;
 
-				Vec3 rightF = nRPos - targetPos;
-				rightF.normalize();
-				rightF = (rightF * (1 - (nRPos - targetPos).dst()) * kRight)												  //   탄성력
-					+ rightF * ((nRPos - targetPos) * fabsf(1.f / (nRight.time - target.time + eps)) * rightF) * kDampRight;  // + 감쇠력
+				Vec3 vRight = nRPos - targetPos;
+				const float vRightLen = vRight.getLength();
+				Vec3 velRight = ((nRight.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vRight * (1.f / (nRight.time - target.time));
+				vRight.normalize();
+				Vec3 fRight = vRight * ((ORIGIN_LEN - vRightLen) * kRight + (velRight * vRight) * kDampRight);  // 탄성력 + 감쇠력
 
-				Vec3 leftF = nLPos - targetPos;
-				leftF.normalize();
-				leftF = leftF * (1 - (nLPos - targetPos).dst()) * kLeft
-					+ leftF * ((nLPos - targetPos) * fabsf(1.f / (nLeft.time - target.time + eps)) * leftF) * kDampLeft;
+				Vec3 vLeft = nLPos - targetPos;
+				const float vLeftLen = vLeft.getLength();
+				Vec3 velLeft = ((nLeft.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vLeft * (1.f / (nLeft.time - target.time));
+				vLeft.normalize();
+				Vec3 fLeft = vLeft * ((ORIGIN_LEN - vLeftLen) * kLeft + (velLeft * vLeft) * kDampLeft);  // 탄성력 + 감쇠력
 
-				Vec3 topF = nTPos - targetPos;
-				topF.normalize();
-				topF = topF * (1 - (nTPos - targetPos).dst()) * kTop
-					+ topF * ((nTPos - targetPos) * fabsf(1.f / (nTop.time - target.time + eps)) *topF) * kDampTop;
+				Vec3 vTop = nTPos - targetPos;
+				const float vTopLen = vTop.getLength();
+				Vec3 velTop = ((nTop.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vTop * (1.f / (nTop.time - target.time));
+				vTop.normalize();
+				Vec3 fTop = vTop * ((ORIGIN_LEN - vTopLen) * kTop + (velTop * vTop) * kDampTop);  // 탄성력 + 감쇠력
 
-				Vec3 bottomF = nBPos - targetPos;
-				bottomF.normalize();
-				bottomF = bottomF * (1 - (nBPos - targetPos).dst()) * kBottom
-					+ bottomF * ((nBPos - targetPos) * fabsf(1.f / (nBottom.time - target.time + eps)) * bottomF) * kDampBottom;
+				Vec3 vBottom = nBPos - targetPos;
+				const float vBottomLen = vBottom.getLength();
+				Vec3 velBottom = ((nBottom.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vBottom * (1.f / (nBottom.time - target.time));
+				vBottom.normalize();
+				Vec3 fBottom = vBottom * ((ORIGIN_LEN - vBottomLen) * kBottom + (velBottom * vBottom) * kDampBottom);  // 탄성력 + 감쇠력
 
-				Vec3 totalF = -(rightF + leftF + topF + bottomF);
+				Vec3 fTotal = -(fRight + fLeft + fTop + fBottom);
 
-
-				float delta = 0.001f;
-				Vec3 mov = totalF * delta;//(/ m * deltat *deltat);
-				targetPos += mov;
+				if (fTotal.dst() > 0.001f)
+				{
+					float delta = 0.001f;
+					Vec3 mov = fTotal * delta;//(/ m * deltat *deltat);
+					targetPos += mov;
+				}
 
 				node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
 				node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
 			}
 
-	memIdx = (++memIdx) & 1;
+		memIdx = (++memIdx) & 1;
+	}
 }
 
 
@@ -277,8 +284,9 @@ void Chainmail::relax_spring()
 void Chainmail::relax_sein()
 {
 	const float maxF = 4.f; // 원진 누나 ppt 참고(2차원일때 최대 4, 3차원 : 6)
-	constexpr float eps = 0.000001f;
+
 	for (int i = 0; i < 3; ++i)
+	{
 		for (int y = 0; y < ARR_HEIGHT; ++y)
 			for (int x = 0; x < ARR_WIDTH; ++x)
 			{
@@ -298,41 +306,35 @@ void Chainmail::relax_sein()
 				Vec3 nTPos = (y == 0) ? noMeaningVec : node[memIdx][y - 1][x].position;
 				Vec3 nBPos = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[memIdx][y + 1][x].position;
 
-				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx + eps);
-				float kLeft = (x == 0) ? 0.f : 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx + eps);
-				float kTop = (y == 0) ? 0.f : 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy + eps);
-				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy + eps);
+				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / ((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx)*0.5f + EPS);
+				float kLeft = (x == 0) ? 0.f : 1.f / ((link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx)*0.5f + EPS);
+				float kTop = (y == 0) ? 0.f : 1.f / ((link[y][x][TOP].maxDx - link[y][x][TOP].minDx)*0.5f + EPS);
+				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / ((link[y][x][BOTTOM].maxDx - link[y][x][BOTTOM].minDx)*0.5f + EPS);
 				float kSumInv = 1.f / (kRight + kLeft + kTop + kBottom);
 
-				/*Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
-					fminf(link[y][x][BOTTOM].maxVrtDx, (link[y][x][BOTTOM].maxDx - link[y][x][BOTTOM].minDx) * 0.5f), 0.0f };
-				plasticity *= (1.f - powf(0.7f, 0.16f));*/
 				// k 값에 대응해야함
-				// 현재는 임의의 값
-				Vec3 plasticity = { 0.005f, 0.005f, 0.f };
+				// 현재는 미리 계산하여 적용
+				/*Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
+					fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), 0.0f };*/
+				Vec3 plasticity = { .425f, .425f, 0.0f };
+				plasticity *= (1.f - powf(0.01f, 0.16f));
 
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
-				float goal_Fx = (nRPos.x - 1 - targetPos.x)*kRight + (nLPos.x + 1 - targetPos.x)*kLeft
-					+ (nTPos.x - targetPos.x)*kTop + (nBPos.x - targetPos.x)*kBottom;
-				float goal_Fy = (nRPos.y - targetPos.y)*kRight + (nLPos.y - targetPos.y)*kLeft
-					+ (nTPos.y + 1 - targetPos.y)*kTop + (nBPos.y - 1 - targetPos.y)*kBottom;
+				float goal_Fx = (nRPos.x - 1.f)*kRight + (nLPos.x + 1.f)*kLeft + nTPos.x*kTop + nBPos.x * kBottom;
+				float goal_Fy = nRPos.y*kRight + nLPos.y*kLeft + (nTPos.y + 1.f)*kTop + (nBPos.y - 1.f) * kBottom;
 				float goal_Fz = 0.f;
 
 				//// 진동 감쇠
-				Vec3 movF = Vec3(goal_Fx, goal_Fy, goal_Fz);
+				Vec3 relax = Vec3(goal_Fx,goal_Fy,goal_Fz) * kSumInv;
+				Vec3 delta = relax - targetPos;
+				Vec3 movF = delta * (kRight + kLeft + kTop + kBottom);
 				float movF_size = movF.getLength();
 				movF.normalize();
 
 				//if (mov 가 적당하게 커야만 > T)
-				//	//, 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
-
-				/*if (movF_size < -plasticity.x)
-					targetPos.x -= ((movF.x * (movF_size + plasticity.x)) * kSumInv);*/
+				//적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
 				if (movF_size > maxF * plasticity.x)
 					targetPos.x += ((movF.x * (movF_size - maxF * plasticity.x)) * kSumInv);
-
-				/*	if (movF_size < -plasticity.y)
-						targetPos.y -= ((movF.y * (movF_size + plasticity.y)) * kSumInv);*/
 				if (movF_size > maxF * plasticity.y)
 					targetPos.y += ((movF.y * (movF_size - maxF * plasticity.y)) * kSumInv);
 
@@ -340,5 +342,6 @@ void Chainmail::relax_sein()
 				node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
 			}
 
-	memIdx = (++memIdx) & 1;
+		memIdx = (++memIdx) & 1;
+	}
 }
