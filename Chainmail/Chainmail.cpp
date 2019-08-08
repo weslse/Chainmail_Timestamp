@@ -191,8 +191,8 @@ void Chainmail::propagate()
 // ÆòÈ°È­(relaxation) °úÁ¤
 void Chainmail::relax()
 {
-	//relax_spring();
-	relax_sein();
+	relax_spring();
+	//relax_sein();
 }
 
 // ÈûÀ» ÀÌ¿ëÇÑ ¹æ½Ä. °íÀüÀû
@@ -232,34 +232,34 @@ void Chainmail::relax_spring()
 				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
 
 				// k°ª¿¡ ºñ·Ê
-				const float kDampRight = 10.01f * kRight;
-				const float kDampLeft = 10.01f *kLeft;
-				const float kDampTop = 10.01f *kTop;
-				const float kDampBottom = 10.01f *kBottom;
+				const float kDampRight = .1f * kRight;
+				const float kDampLeft = .1f *kLeft;
+				const float kDampTop = .1f *kTop;
+				const float kDampBottom = .1f *kBottom;
 
 				Vec3 vRight = nRPos - targetPos;
 				const float vRightLen = vRight.getLength();
 				Vec3 velRight = ((nRight.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vRight * (1.f / (nRight.time - target.time));
 				vRight.normalize();
-				Vec3 fRight = vRight * ((ORIGIN_LEN - vRightLen) * kRight + (velRight * vRight) * kDampRight);  // Åº¼º·Â + °¨¼è·Â
+				Vec3 fRight = vRight * ((ORIGIN_LEN - vRightLen) * kRight - (velRight * vRight) * kDampRight);  // Åº¼º·Â + °¨¼è·Â
 
 				Vec3 vLeft = nLPos - targetPos;
 				const float vLeftLen = vLeft.getLength();
 				Vec3 velLeft = ((nLeft.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vLeft * (1.f / (nLeft.time - target.time));
 				vLeft.normalize();
-				Vec3 fLeft = vLeft * ((ORIGIN_LEN - vLeftLen) * kLeft + (velLeft * vLeft) * kDampLeft);  // Åº¼º·Â + °¨¼è·Â
+				Vec3 fLeft = vLeft * ((ORIGIN_LEN - vLeftLen) * kLeft - (velLeft * vLeft) * kDampLeft);  // Åº¼º·Â + °¨¼è·Â
 
 				Vec3 vTop = nTPos - targetPos;
 				const float vTopLen = vTop.getLength();
 				Vec3 velTop = ((nTop.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vTop * (1.f / (nTop.time - target.time));
 				vTop.normalize();
-				Vec3 fTop = vTop * ((ORIGIN_LEN - vTopLen) * kTop + (velTop * vTop) * kDampTop);  // Åº¼º·Â + °¨¼è·Â
+				Vec3 fTop = vTop * ((ORIGIN_LEN - vTopLen) * kTop - (velTop * vTop) * kDampTop);  // Åº¼º·Â + °¨¼è·Â
 
 				Vec3 vBottom = nBPos - targetPos;
 				const float vBottomLen = vBottom.getLength();
 				Vec3 velBottom = ((nBottom.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vBottom * (1.f / (nBottom.time - target.time));
 				vBottom.normalize();
-				Vec3 fBottom = vBottom * ((ORIGIN_LEN - vBottomLen) * kBottom + (velBottom * vBottom) * kDampBottom);  // Åº¼º·Â + °¨¼è·Â
+				Vec3 fBottom = vBottom * ((ORIGIN_LEN - vBottomLen) * kBottom - (velBottom * vBottom) * kDampBottom);  // Åº¼º·Â + °¨¼è·Â
 
 				Vec3 fTotal = -(fRight + fLeft + fTop + fBottom);
 
@@ -325,7 +325,7 @@ void Chainmail::relax_sein()
 				float goal_Fz = 0.f;
 
 				//// Áøµ¿ °¨¼è
-				Vec3 relax = Vec3(goal_Fx,goal_Fy,goal_Fz) * kSumInv;
+				Vec3 relax = Vec3(goal_Fx, goal_Fy, goal_Fz) * kSumInv;
 				Vec3 delta = relax - targetPos;
 				Vec3 movF = delta * (kRight + kLeft + kTop + kBottom);
 				float movF_size = movF.getLength();
