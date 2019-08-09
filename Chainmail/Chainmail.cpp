@@ -189,93 +189,114 @@ void Chainmail::propagate()
 }
 
 // 평활화(relaxation) 과정
+// 원하는 함수의 주석을 해제하고
+// 다른 함수의 주석을 넣어 실행할 것
 void Chainmail::relax()
 {
-	relax_spring();
-	//relax_sein();
+	//relax_spring();
+	relax_sein();
 }
 
 // 힘을 이용한 방식. 고전적
 // springF를 자료 구조에 추가해야함
 void Chainmail::relax_spring()
 {
-	for (int i = 0; i < 8; i++) // 임의의 반복 횟수 제한
+	// 임의의 반복 횟수 제한
+	// 세인이형 모델에 비해 횟수가 많다.
+	// 약 10회 부터 약간의 버벅임이 있음 (본인 노트북 기준)
+	for (int i = 0; i < 8; i++)
 	{
 		for (int y = 0; y < ARR_HEIGHT; ++y)
+		{
 			for (int x = 0; x < ARR_WIDTH; ++x)
 			{
 				Node target = node[memIdx][y][x];
 
 				// EPICENTER는 relaxation에서 제외
-				if (y == ARR_HEIGHT && x == ARR_WIDTH)
+				if (y == TARGET_Y && x == TARGET_X)
 				{
 					node[(memIdx + 1) & 1][y][x].position.x = target.position.x;
 					node[(memIdx + 1) & 1][y][x].position.y = target.position.y;
 					continue;
 				}
 
+				// 각각의 노드 변수
 				Node noMeaningNode = target;
 				Node nRight = (x == ARR_WIDTH - 1) ? noMeaningNode : node[memIdx][y][x + 1];
 				Node nLeft = (x == 0) ? noMeaningNode : node[memIdx][y][x - 1];
 				Node nTop = (y == 0) ? noMeaningNode : node[memIdx][y - 1][x];
 				Node nBottom = (y == ARR_HEIGHT - 1) ? noMeaningNode : node[memIdx][y + 1][x];
 
+				// 노드들의 위치벡터
 				Vec3 targetPos = target.position;
 				Vec3 nRPos = nRight.position;
 				Vec3 nLPos = nLeft.position;
 				Vec3 nTPos = nTop.position;
 				Vec3 nBPos = nBottom.position;
 
+				// 이웃노드들의 k값(탄성계수)
 				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx);
 				float kLeft = (x == 0) ? 0.f : 1.f / (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx);
 				float kTop = (y == 0) ? 0.f : 1.f / (link[y][x][TOP].maxDy - link[y][x][TOP].minDy);
 				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy);
 
 				// k값에 비례
-				const float kDampRight = .1f * kRight;
-				const float kDampLeft = .1f *kLeft;
-				const float kDampTop = .1f *kTop;
-				const float kDampBottom = .1f *kBottom;
+				// 이웃노드의 k값을 댐핑에 사용할 수 있도록 
+				// 아래의 kProp 상수를 곱하여 사용한다.(k값 조절)
+				constexpr float kProp = 0.05f;
+				const float kDampRight = kProp * kRight;
+				const float kDampLeft = kProp * kLeft;
+				const float kDampTop = kProp * kTop;
+				const float kDampBottom = kProp * kBottom;
 
+				// 오른쪽 방향의 탄성력+감쇠력
 				Vec3 vRight = nRPos - targetPos;
 				const float vRightLen = vRight.getLength();
 				Vec3 velRight = ((nRight.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vRight * (1.f / (nRight.time - target.time));
 				vRight.normalize();
 				Vec3 fRight = vRight * ((ORIGIN_LEN - vRightLen) * kRight - (velRight * vRight) * kDampRight);  // 탄성력 + 감쇠력
 
+				// 왼쪽 방향의 탄성력+감쇠력
 				Vec3 vLeft = nLPos - targetPos;
 				const float vLeftLen = vLeft.getLength();
 				Vec3 velLeft = ((nLeft.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vLeft * (1.f / (nLeft.time - target.time));
 				vLeft.normalize();
 				Vec3 fLeft = vLeft * ((ORIGIN_LEN - vLeftLen) * kLeft - (velLeft * vLeft) * kDampLeft);  // 탄성력 + 감쇠력
 
+				// 위쪽 방향의 탄성력+감쇠력
 				Vec3 vTop = nTPos - targetPos;
 				const float vTopLen = vTop.getLength();
 				Vec3 velTop = ((nTop.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vTop * (1.f / (nTop.time - target.time));
 				vTop.normalize();
 				Vec3 fTop = vTop * ((ORIGIN_LEN - vTopLen) * kTop - (velTop * vTop) * kDampTop);  // 탄성력 + 감쇠력
 
+				// 아래쪽 방향의 탄성력+감쇠력
 				Vec3 vBottom = nBPos - targetPos;
 				const float vBottomLen = vBottom.getLength();
 				Vec3 velBottom = ((nBottom.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vBottom * (1.f / (nBottom.time - target.time));
 				vBottom.normalize();
 				Vec3 fBottom = vBottom * ((ORIGIN_LEN - vBottomLen) * kBottom - (velBottom * vBottom) * kDampBottom);  // 탄성력 + 감쇠력
 
+				// 총합 탄성력은 계산 결과에 반대로 작용
 				Vec3 fTotal = -(fRight + fLeft + fTop + fBottom);
 
+				// 크기가 너무 작지 않다면 움직임에 적용한다.
 				if (fTotal.dst() > 0.001f)
 				{
-					float delta = 0.001f;
-					Vec3 mov = fTotal * delta;//(/ m * deltat *deltat);
+					float delta = 0.001f; // delta  = (1.f/ m * deltat *deltat);
+					Vec3 mov = fTotal * delta;
 					targetPos += mov;
 				}
 
+				// pingpong scheme
 				node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
 				node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
-			}
+			} // end for(i)
+		} // end for(y)
 
+		// 0->1, 1->0
 		memIdx = (++memIdx) & 1;
-	}
+	} // end for(i)
 }
 
 
@@ -283,41 +304,46 @@ void Chainmail::relax_spring()
 // 축에 따라 각기 다르게
 void Chainmail::relax_sein()
 {
-	const float maxF = 4.f; // 원진 누나 ppt 참고(2차원일때 최대 4, 3차원 : 6)
+	// 원진 누나 ppt 참고(2차원일때 최대 4, 3차원 : 6)
+	constexpr float maxF = 4.f; 
 
+	// spring 방법에 비해 반복횟수가 적다.
 	for (int i = 0; i < 3; ++i)
 	{
 		for (int y = 0; y < ARR_HEIGHT; ++y)
+		{
 			for (int x = 0; x < ARR_WIDTH; ++x)
 			{
 				Vec3 targetPos = node[memIdx][y][x].position;
 
 				// EPICENTER는 relaxation에서 제외
-				if (y == ARR_HEIGHT && x == ARR_WIDTH)
+				if (y == TARGET_Y && x == TARGET_X)
 				{
 					node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
 					node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
 					continue;
 				}
 
+				// 이웃노드의 방향
 				Vec3 noMeaningVec = targetPos;
 				Vec3 nRPos = (x == ARR_WIDTH - 1) ? noMeaningVec : node[memIdx][y][x + 1].position;
 				Vec3 nLPos = (x == 0) ? noMeaningVec : node[memIdx][y][x - 1].position;
 				Vec3 nTPos = (y == 0) ? noMeaningVec : node[memIdx][y - 1][x].position;
 				Vec3 nBPos = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[memIdx][y + 1][x].position;
 
+				// 이웃노드에 대한 k값
 				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / ((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx)*0.5f + EPS);
 				float kLeft = (x == 0) ? 0.f : 1.f / ((link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx)*0.5f + EPS);
-				float kTop = (y == 0) ? 0.f : 1.f / ((link[y][x][TOP].maxDx - link[y][x][TOP].minDx)*0.5f + EPS);
-				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / ((link[y][x][BOTTOM].maxDx - link[y][x][BOTTOM].minDx)*0.5f + EPS);
+				float kTop = (y == 0) ? 0.f : 1.f / ((link[y][x][TOP].maxDy - link[y][x][TOP].minDy)*0.5f + EPS);
+				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / ((link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy)*0.5f + EPS);
 				float kSumInv = 1.f / (kRight + kLeft + kTop + kBottom);
 
-				// k 값에 대응해야함
-				// 현재는 미리 계산하여 적용
-				/*Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
-					fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), 0.0f };*/
+				// k 값에 대응해야함 현재는 미리 계산하여 적용
+				// 원진 누나 코드 참고
+				//Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
+				//	fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), 0.0f };
 				Vec3 plasticity = { .425f, .425f, 0.0f };
-				plasticity *= (1.f - powf(0.01f, 0.16f));
+				plasticity *= (1.f - powf(0.7f, 0.16f));
 
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
 				float goal_Fx = (nRPos.x - 1.f)*kRight + (nLPos.x + 1.f)*kLeft + nTPos.x*kTop + nBPos.x * kBottom;
@@ -338,10 +364,13 @@ void Chainmail::relax_sein()
 				if (movF_size > maxF * plasticity.y)
 					targetPos.y += ((movF.y * (movF_size - maxF * plasticity.y)) * kSumInv);
 
+				// pingpong scheme
 				node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
 				node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
-			}
+			} // end for(x)
+		} // end for(y)
 
+		// 0->1, 1->0
 		memIdx = (++memIdx) & 1;
-	}
+	} //end for(i)
 }
