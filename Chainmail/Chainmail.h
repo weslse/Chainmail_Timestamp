@@ -8,8 +8,7 @@
 // 노드(포인트) - 포지션(x,y), 시간
 // 엣지(링크, 제한값(constraint)) - x,y에 대한 값
 // 2D Chainmail
-class Chainmail
-{
+class Chainmail {
 
 public:
 	Node node[NUM_MEMSET][ARR_HEIGHT][ARR_WIDTH]; // pingpong scheme
@@ -23,6 +22,7 @@ public:
 
 	void setNode();
 	void setLink();
+	void setDensity(ubyte**& volume);
 	void resetTime();
 
 	void movePosition(const int x, const int y, const float mvX, const float mvY);

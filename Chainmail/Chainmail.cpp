@@ -7,8 +7,7 @@ void Chainmail::setNode()
 {
 	for (int idxP = 0; idxP < NUM_MEMSET; ++idxP)
 		for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
-			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
-			{
+			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX) {
 				node[idxP][idxY][idxX].position.x = static_cast<float>(idxX);
 				node[idxP][idxY][idxX].position.y = static_cast<float>(idxY);
 				node[idxP][idxY][idxX].time = 100000.0f;
@@ -21,8 +20,7 @@ void Chainmail::setLink()
 	for (int y = 0; y < ARR_HEIGHT; ++y)
 		for (int x = 0; x < ARR_WIDTH; ++x)
 			// 순서 r, l, t, b
-			for (int n = 0; n < NUM_NEIGHBOR; ++n)
-			{
+			for (int n = 0; n < NUM_NEIGHBOR; ++n) {
 				// 가장 간단한 상황
 				// 형질이 모두 같을 때 (homogeneous)
 				link[y][x][n].minDx = 0.3f;
@@ -33,6 +31,14 @@ void Chainmail::setLink()
 				link[y][x][n].maxDy = 1.25f;
 				link[y][x][n].maxVrtDx = 0.5f;
 			}
+}
+
+void Chainmail::setDensity(ubyte**& volume)
+{
+	for (int idxP = 0; idxP < NUM_MEMSET; ++idxP)
+		for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
+			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
+				node[idxP][idxY][idxX].density = volume[idxY][idxX];
 }
 
 void Chainmail::resetTime()
@@ -113,20 +119,20 @@ void Chainmail::propagate()
 
 		// loop 시작
 		for (int y = 0; y < ARR_HEIGHT; ++y)
-			for (int x = 0; x < ARR_WIDTH; ++x)
-			{
+			for (int x = 0; x < ARR_WIDTH; ++x) {
+
 				// 살짝 수정 필요 (pair 사용하지말기-> CUDA로 넘어갈때 바로 변경하기 힘듬)
 				auto pair_NeighborDir = minTimeNeighborDir(x, y);
 				Node minTimeNeighbor = pair_NeighborDir.first; // minTimeNeighbor
-				Direction mtnDir = pair_NeighborDir.second; // neighborDir
+				Direction mtnDir = pair_NeighborDir.second;    // neighborDir
 
 				// 현재 노드의 시간이 주변 노드의 시간 보다 느릴때 (나.t > 주변.t + 1)
 				// 노드의 위치를 갱신한다.
-				if (node[memIdx][y][x].time > minTimeNeighbor.time + 1)
-				{
+				if (node[memIdx][y][x].time > minTimeNeighbor.time + 1) {
+
 					// 순서 : r l t b
-					switch (mtnDir)
-					{
+					switch (mtnDir) {
+
 					case RIGHT:
 						if ((minTimeNeighbor.position.x - node[memIdx][y][x].position.x) < link[y][x][mtnDir].minDx)
 							node[memIdx][y][x].position.x = minTimeNeighbor.position.x - link[y][x][mtnDir].minDx; // 우측노드보다 값이 작은 위치로 보내야함
@@ -198,23 +204,20 @@ void Chainmail::relax()
 }
 
 // 힘을 이용한 방식. 고전적
-// springF를 자료 구조에 추가해야함
 void Chainmail::relax_spring()
 {
 	// 임의의 반복 횟수 제한
 	// 세인이형 모델에 비해 횟수가 많다.
 	// 약 10회 부터 약간의 버벅임이 있음 (본인 노트북 기준)
-	for (int i = 0; i < 8; i++)
-	{
-		for (int y = 0; y < ARR_HEIGHT; ++y)
-		{
-			for (int x = 0; x < ARR_WIDTH; ++x)
-			{
+	for (int i = 0; i < 8; i++) {
+		for (int y = 0; y < ARR_HEIGHT; ++y) {
+			for (int x = 0; x < ARR_WIDTH; ++x) {
+
 				Node target = node[memIdx][y][x];
 
 				// EPICENTER는 relaxation에서 제외
-				if (y == TARGET_Y && x == TARGET_X)
-				{
+				if (y == TARGET_Y && x == TARGET_X) {
+
 					node[(memIdx + 1) & 1][y][x].position.x = target.position.x;
 					node[(memIdx + 1) & 1][y][x].position.y = target.position.y;
 					continue;
@@ -281,8 +284,8 @@ void Chainmail::relax_spring()
 				Vec3 fTotal = -(fRight + fLeft + fTop + fBottom);
 
 				// 크기가 너무 작지 않다면 움직임에 적용한다.
-				if (fTotal.dst() > 0.001f)
-				{
+				if (fTotal.getMagnitude() > 0.001f) {
+
 					float delta = 0.001f; // delta  = (1.f/ m * deltat *deltat);
 					Vec3 mov = fTotal * delta;
 					targetPos += mov;
@@ -304,21 +307,24 @@ void Chainmail::relax_spring()
 // 축에 따라 각기 다르게
 void Chainmail::relax_sein()
 {
+	// 이 값을 조절하여 부드러운 정도 설정
+	// 동형질의 물질이기 때문에 이렇게 설정가능
+	// 이형질인 경우 노드의 property 등으로 설정해야할 것
+	constexpr float ELASTICITY = 0.7f;
+
 	// 원진 누나 ppt 참고(2차원일때 최대 4, 3차원 : 6)
-	constexpr float maxF = 4.f; 
+	constexpr float MAX_F = 4.f;
 
 	// spring 방법에 비해 반복횟수가 적다.
-	for (int i = 0; i < 3; ++i)
-	{
-		for (int y = 0; y < ARR_HEIGHT; ++y)
-		{
-			for (int x = 0; x < ARR_WIDTH; ++x)
-			{
+	for (int i = 0; i < 3; ++i) {
+		for (int y = 0; y < ARR_HEIGHT; ++y) {
+			for (int x = 0; x < ARR_WIDTH; ++x) {
+
 				Vec3 targetPos = node[memIdx][y][x].position;
 
 				// EPICENTER는 relaxation에서 제외
-				if (y == TARGET_Y && x == TARGET_X)
-				{
+				if (y == TARGET_Y && x == TARGET_X) {
+
 					node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
 					node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
 					continue;
@@ -332,10 +338,10 @@ void Chainmail::relax_sein()
 				Vec3 nBPos = (y == ARR_HEIGHT - 1) ? noMeaningVec : node[memIdx][y + 1][x].position;
 
 				// 이웃노드에 대한 k값
-				float kRight = (x == ARR_WIDTH - 1) ? 0.f : 1.f / ((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx)*0.5f + EPS);
-				float kLeft = (x == 0) ? 0.f : 1.f / ((link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx)*0.5f + EPS);
-				float kTop = (y == 0) ? 0.f : 1.f / ((link[y][x][TOP].maxDy - link[y][x][TOP].minDy)*0.5f + EPS);
-				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : 1.f / ((link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy)*0.5f + EPS);
+				float kRight = (x == ARR_WIDTH - 1) ? 0.f : (1.f / ((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f + EPS));
+				float kLeft = (x == 0) ? 0.f : (1.f / ((link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx) * 0.5f + EPS));
+				float kTop = (y == 0) ? 0.f : (1.f / ((link[y][x][TOP].maxDy - link[y][x][TOP].minDy) * 0.5f + EPS));
+				float kBottom = (y == ARR_HEIGHT - 1) ? 0.f : (1.f / ((link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f + EPS));
 				float kSumInv = 1.f / (kRight + kLeft + kTop + kBottom);
 
 				// k 값에 대응해야함 현재는 미리 계산하여 적용
@@ -343,11 +349,11 @@ void Chainmail::relax_sein()
 				//Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
 				//	fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), 0.0f };
 				Vec3 plasticity = { .425f, .425f, 0.0f };
-				plasticity *= (1.f - powf(0.7f, 0.16f));
+				plasticity *= (1.f - powf(ELASTICITY, 0.16f));
 
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
-				float goal_Fx = (nRPos.x - 1.f)*kRight + (nLPos.x + 1.f)*kLeft + nTPos.x*kTop + nBPos.x * kBottom;
-				float goal_Fy = nRPos.y*kRight + nLPos.y*kLeft + (nTPos.y + 1.f)*kTop + (nBPos.y - 1.f) * kBottom;
+				float goal_Fx = ((nRPos.x - 1.f) * kRight) + ((nLPos.x + 1.f) * kLeft) + (nTPos.x * kTop) + (nBPos.x * kBottom);
+				float goal_Fy = (nRPos.y * kRight) + (nLPos.y * kLeft) + ((nTPos.y + 1.f) * kTop) + ((nBPos.y - 1.f) * kBottom);
 				float goal_Fz = 0.f;
 
 				//// 진동 감쇠
@@ -359,10 +365,10 @@ void Chainmail::relax_sein()
 
 				//if (mov 가 적당하게 커야만 > T)
 				//적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
-				if (movF_size > maxF * plasticity.x)
-					targetPos.x += ((movF.x * (movF_size - maxF * plasticity.x)) * kSumInv);
-				if (movF_size > maxF * plasticity.y)
-					targetPos.y += ((movF.y * (movF_size - maxF * plasticity.y)) * kSumInv);
+				if (movF_size > MAX_F * plasticity.x)
+					targetPos.x += ((movF.x * (movF_size - MAX_F * plasticity.x)) * kSumInv);
+				if (movF_size > MAX_F * plasticity.y)
+					targetPos.y += ((movF.y * (movF_size - MAX_F * plasticity.y)) * kSumInv);
 
 				// pingpong scheme
 				node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
