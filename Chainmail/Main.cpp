@@ -35,6 +35,7 @@ void printNode();
 
 
 
+ubyte tVolume[225][256][256];
 // 주요 함수
 void setVolume()
 {
@@ -42,22 +43,18 @@ void setVolume()
 	for (int y = 0; y < ARR_HEIGHT; ++y)
 		volume[y] = new ubyte[ARR_WIDTH];
 
-	ubyte* tVolume = new ubyte[VOLUME_SIZE];
 
 	std::ifstream inStream;
-	inStream.open("./volume/Bighead.den", std::ios::binary);
+	inStream.open("./volume/Bighead.den", std::ios::in | std::ios::binary);
 
 	if (!inStream)
 		return;
 
-	inStream.seekg(VOLUME_HEIGHT * VOLUME_WIDTH * 80, ios::beg);
-	inStream.read(reinterpret_cast<char*>(tVolume), VOLUME_SIZE);
+	inStream.read(reinterpret_cast<char*>(tVolume), 225 * 256 * 256);
 
 	for (int y = 0; y < ARR_HEIGHT; ++y)
 		for (int x = 0; x < ARR_WIDTH; ++x)
-			volume[y][x] = tVolume[y * 4 * VOLUME_HEIGHT + x * 4];
-
-	delete tVolume;
+			volume[y][x] = tVolume[110][y * 4][x * 4];
 }
 
 // init Chainmail
