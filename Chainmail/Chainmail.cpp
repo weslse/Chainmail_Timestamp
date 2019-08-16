@@ -21,6 +21,7 @@ void Chainmail::setLink()
 		for (int x = 0; x < ARR_WIDTH; ++x)
 			// 순서 r, l, t, b
 			for (int n = 0; n < NUM_NEIGHBOR; ++n) {
+
 				// 가장 간단한 상황
 				// 형질이 모두 같을 때 (homogeneous)
 				link[y][x][n].minDx = 0.3f;
@@ -39,6 +40,21 @@ void Chainmail::setDensity(ubyte**& volume)
 		for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
 			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
 				node[idxP][idxY][idxX].density = volume[idxY][idxX];
+}
+
+void Chainmail::setTexArr()
+{
+	for (int y = 0; y < ARR_HEIGHT; ++y)
+		for (int x = 0; x < ARR_WIDTH; ++x)
+			for (int c = 0; c < 3; ++c) {
+				auto idxX = static_cast<int>(node[memIdx][y][x].position.x);
+				auto idxY = static_cast<int>(node[memIdx][y][x].position.y);
+				if (idxY > 0.f && idxY < ARR_HEIGHT)
+					if (idxX > 0.f && idxX < ARR_WIDTH)
+						texArr[idxY][idxX][c] = node[memIdx][y][x].density;
+					else
+						texArr[y][x][c] = 0.0f;
+			}
 }
 
 void Chainmail::resetTime()
@@ -62,6 +78,7 @@ void Chainmail::movePosition(const int x, const int y, const float mvX, const fl
 
 	propagate();
 	relax();
+	setTexArr();
 }
 
 // time이 가장 빠른 노드와 방향을 리턴한다.
@@ -230,7 +247,7 @@ void Chainmail::relax_spring()
 				Node nTop = (y == 0) ? noMeaningNode : node[memIdx][y - 1][x];
 				Node nBottom = (y == ARR_HEIGHT - 1) ? noMeaningNode : node[memIdx][y + 1][x];
 
-				// 노드들의 위치벡터
+				// 노드들의 위치 벡터
 				Vec3 targetPos = target.position;
 				Vec3 nRPos = nRight.position;
 				Vec3 nLPos = nLeft.position;
@@ -252,28 +269,28 @@ void Chainmail::relax_spring()
 				const float kDampTop = kProp * kTop;
 				const float kDampBottom = kProp * kBottom;
 
-				// 오른쪽 방향의 탄성력+감쇠력
+				// 오른쪽 방향의 탄성력 + 감쇠력
 				Vec3 vRight = nRPos - targetPos;
 				const float vRightLen = vRight.getLength();
 				Vec3 velRight = ((nRight.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vRight * (1.f / (nRight.time - target.time));
 				vRight.normalize();
 				Vec3 fRight = vRight * ((ORIGIN_LEN - vRightLen) * kRight - (velRight * vRight) * kDampRight);  // 탄성력 + 감쇠력
 
-				// 왼쪽 방향의 탄성력+감쇠력
+				// 왼쪽 방향의 탄성력 + 감쇠력
 				Vec3 vLeft = nLPos - targetPos;
 				const float vLeftLen = vLeft.getLength();
 				Vec3 velLeft = ((nLeft.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vLeft * (1.f / (nLeft.time - target.time));
 				vLeft.normalize();
 				Vec3 fLeft = vLeft * ((ORIGIN_LEN - vLeftLen) * kLeft - (velLeft * vLeft) * kDampLeft);  // 탄성력 + 감쇠력
 
-				// 위쪽 방향의 탄성력+감쇠력
+				// 위쪽 방향의 탄성력 + 감쇠력
 				Vec3 vTop = nTPos - targetPos;
 				const float vTopLen = vTop.getLength();
 				Vec3 velTop = ((nTop.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vTop * (1.f / (nTop.time - target.time));
 				vTop.normalize();
 				Vec3 fTop = vTop * ((ORIGIN_LEN - vTopLen) * kTop - (velTop * vTop) * kDampTop);  // 탄성력 + 감쇠력
 
-				// 아래쪽 방향의 탄성력+감쇠력
+				// 아래쪽 방향의 탄성력 + 감쇠력
 				Vec3 vBottom = nBPos - targetPos;
 				const float vBottomLen = vBottom.getLength();
 				Vec3 velBottom = ((nBottom.time - target.time) == 0.f) ? Vec3(0.f, 0.f, 0.f) : vBottom * (1.f / (nBottom.time - target.time));

@@ -14,6 +14,7 @@ int dragStartX;
 int dragStartY;
 bool dragging = false;
 
+
 // volume data
 ubyte** volume = nullptr;
 
@@ -28,6 +29,7 @@ void reshapeFunc(int width, int height);
 void clickFunc(GLint button, GLint state, GLint x, GLint y);
 void motionFunc(GLint x, GLint y);
 void idleFunc();
+
 // 노드 정보 출력(좌표, timestamp)
 void printNode();
 
@@ -47,25 +49,24 @@ void setVolume()
 
 	if (!inStream)
 		return;
-	
+
 	inStream.seekg(VOLUME_HEIGHT * VOLUME_WIDTH * 80, ios::beg);
 	inStream.read(reinterpret_cast<char*>(tVolume), VOLUME_SIZE);
 
-	for (int y = 0; y < ARR_HEIGHT; ++y) {
-		for (int x = 0; x < ARR_WIDTH; ++x) {
+	for (int y = 0; y < ARR_HEIGHT; ++y)
+		for (int x = 0; x < ARR_WIDTH; ++x)
 			volume[y][x] = tVolume[y * 4 * VOLUME_HEIGHT + x * 4];
-		}
-	}
-	
+
 	delete tVolume;
 }
 
 // init Chainmail
-void InitChainmail()
+void initChainmail()
 {
 	c.setNode();
 	c.setLink();
 	c.setDensity(volume);
+	c.setTexArr();
 }
 
 
@@ -80,7 +81,7 @@ int main(int argc, char* argv[])
 
 	// init Chainmail
 	setVolume();
-	InitChainmail();
+	initChainmail();
 
 	glutDisplayFunc(displayFunc);
 	glutReshapeFunc(reshapeFunc);
@@ -92,30 +93,41 @@ int main(int argc, char* argv[])
 
 
 
-// 함수 구현부
+// GL 함수 구현부
 void displayFunc()
 {
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB,
-	//	GL_FLOAT, &volume);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEX_WIDTH, TEX_HEIGHT, 0, GL_RGB,
+		GL_UNSIGNED_BYTE, &c.texArr);
 
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
-	//glClear(GL_COLOR_BUFFER_BIT);
-	//glEnable(GL_TEXTURE_2D);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_TEXTURE_2D);
 
-	//glBegin(GL_QUADS);
-	//glTexCoord2f(0.f, 0.f); glVertex3f(1.f, 1.f, 0.f);
-	//glTexCoord2f(1.f, 0.f); glVertex3f(-1.f, 1.f, 0.f);
-	//glTexCoord2f(1.f, 1.f); glVertex3f(-1.f, -1.f, 0.f);
-	//glTexCoord2f(0.f, 1.f); glVertex3f(1.f, -1.f, 0.f);
-	//glEnd();
+	glBegin(GL_QUADS);
+	glTexCoord2f(0.f, 0.f); glVertex3f(-64.f, 64.f, 0.f);
+	glTexCoord2f(1.f, 0.f); glVertex3f(64.f, 64.f, 0.f);
+	glTexCoord2f(1.f, 1.f); glVertex3f(64.f, -64.f, 0.f);
+	glTexCoord2f(0.f, 1.f); glVertex3f(-64.f, -64.f, 0.f);
+	glEnd();
 
-	//glutSwapBuffers();
+	glColor3f(1.0, 1.0, 1.0);
+	int mIdx = c.memIdx;
+	float xPos = c.node[mIdx][TARGET_Y][TARGET_X].position.x;
+	float yPos = c.node[mIdx][TARGET_Y][TARGET_X].position.y;
+	glPushMatrix();
+	glColor3f(1, 0, 0);
+	glTranslatef(xPos - (ARR_WIDTH / 2), (ARR_HEIGHT / 2) - yPos, 0);
+	glutSolidTorus(.1, .8, 4, 30);
+	glPopMatrix();
 
+	glutSwapBuffers();
+
+	/*
 	glClear(GL_COLOR_BUFFER_BIT);
 	glColor3f(1.0, 1.0, 1.0);
 
@@ -138,6 +150,7 @@ void displayFunc()
 		}
 
 	glutSwapBuffers();
+	*/
 }
 
 void reshapeFunc(int width, int height)
@@ -182,8 +195,6 @@ void motionFunc(GLint x, GLint y)
 		dragStartX = x;
 		dragStartY = y;
 
-		//printNode();
-
 		glutPostRedisplay();
 	}
 }
@@ -191,6 +202,7 @@ void motionFunc(GLint x, GLint y)
 void idleFunc()
 {
 	c.relax();
+	c.setTexArr();
 	displayFunc();
 }
 

@@ -26,3 +26,6 @@
 // 노드 간의 기본 거리
 #define ORIGIN_LEN 1.0f
 
+// Texture size
+#define TEX_WIDTH ARR_WIDTH
+#define TEX_HEIGHT ARR_HEIGHT

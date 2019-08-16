@@ -16,7 +16,7 @@ typedef struct {
 typedef struct {
 	Position position;
 	float time;
-	float density;
+	ubyte density;
 } Node;
 
 typedef struct {
