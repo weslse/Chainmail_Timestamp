@@ -27,3 +27,17 @@
 
    2.  Sein's model
       ![](/img/GIF05.gif)
+   
+   
+   
+3.  Heterogeneous data( 256 x 256 -> 64 x 64)
+   z : 100
+   ![](./img/GIF06.gif)
+
+
+   z : 110
+   ![](./img/GIF07.gif)
+
+
+   z : 140
+   ![](./img/GIF08.gif)
