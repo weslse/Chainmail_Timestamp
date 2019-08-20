@@ -14,8 +14,8 @@ void Chainmail::setNode()
 			}
 }
 
-// 링크(constraint) 초기화
-void Chainmail::setLink()
+// 동형질 버전 저장용 함수
+void Chainmail::setLink_Homogeneous()
 {
 	for (int y = 0; y < ARR_HEIGHT; ++y)
 		for (int x = 0; x < ARR_WIDTH; ++x)
@@ -27,10 +27,187 @@ void Chainmail::setLink()
 				link[y][x][n].minDx = 0.3f;
 				link[y][x][n].maxDx = 1.25f;
 				link[y][x][n].maxHrzDy = 0.5f;
-
 				link[y][x][n].minDy = 0.3f;
 				link[y][x][n].maxDy = 1.25f;
 				link[y][x][n].maxVrtDx = 0.5f;
+			}
+}
+
+// 링크(constraint) 초기화
+void Chainmail::setLink()
+{
+	for (int y = 0; y < ARR_HEIGHT; ++y)
+		for (int x = 0; x < ARR_WIDTH; ++x)
+			// 순서 r, l, t, b
+			for (int n = 0; n < NUM_NEIGHBOR; ++n) {
+
+				// density 값에 따라 형질 최대 최소 값에 변화를 준다.
+				// 형질이 다른 경우(heterogeneous)
+				// 각각 방향에 따른 이웃의 밀도 값
+				// link의 constraint는 모두 임의의 상수로 설정하였다.
+				ubyte rNeighborDensity, lNeighborDensity, tNeighborDensity, bNeighborDensity;
+				switch (n)
+				{
+				case Direction::RIGHT:
+					rNeighborDensity = (x == ARR_WIDTH - 1) ? NULL : node[memIdx][y][x + 1].density;
+					if (rNeighborDensity >= 0 && rNeighborDensity < 40) {
+						link[y][x][n].minDx = 0.5f;
+						link[y][x][n].maxDx = 1.5f;
+						link[y][x][n].maxHrzDy = 0.5f;
+
+						link[y][x][n].minDy = 0.5f;
+						link[y][x][n].maxDy = 1.5f;
+						link[y][x][n].maxVrtDx = 0.5f;
+					}
+					else if (rNeighborDensity >= 40 && rNeighborDensity < 100) {
+						link[y][x][n].minDx = 0.95f;
+						link[y][x][n].maxDx = 1.05f;
+						link[y][x][n].maxHrzDy = 0.05f;
+
+						link[y][x][n].minDy = 0.95f;
+						link[y][x][n].maxDy = 1.05f;
+						link[y][x][n].maxVrtDx = 0.05f;
+					}
+					else if (rNeighborDensity >= 100 && rNeighborDensity < 140) {
+						link[y][x][n].minDx = 0.9999f;
+						link[y][x][n].maxDx = 1.0001f;
+						link[y][x][n].maxHrzDy = 0.0005f;
+
+						link[y][x][n].minDy = 0.9999f;
+						link[y][x][n].maxDy = 1.0001f;
+						link[y][x][n].maxVrtDx = 0.0005f;
+					}
+					else {
+						link[y][x][n].minDx = 0.99999f;
+						link[y][x][n].maxDx = 1.00001f;
+						link[y][x][n].maxHrzDy = 0.00001f;
+
+						link[y][x][n].minDy = 0.99999f;
+						link[y][x][n].maxDy = 1.00001f;
+						link[y][x][n].maxVrtDx = 0.00001f;
+					}
+					break;
+
+				case Direction::LEFT:
+					lNeighborDensity = (x == 0) ? NULL : node[memIdx][y][x - 1].density;
+					if (lNeighborDensity >= 0 && lNeighborDensity < 40) {
+						link[y][x][n].minDx = 0.5f;
+						link[y][x][n].maxDx = 1.5f;
+						link[y][x][n].maxHrzDy = 0.5f;
+
+						link[y][x][n].minDy = 0.5f;
+						link[y][x][n].maxDy = 1.5f;
+						link[y][x][n].maxVrtDx = 0.5f;
+					}
+					else if (lNeighborDensity >= 40 && lNeighborDensity < 100) {
+						link[y][x][n].minDx = 0.95f;
+						link[y][x][n].maxDx = 1.05f;
+						link[y][x][n].maxHrzDy = 0.05f;
+
+						link[y][x][n].minDy = 0.95f;
+						link[y][x][n].maxDy = 1.05f;
+						link[y][x][n].maxVrtDx = 0.05f;
+					}
+					else if (lNeighborDensity >= 100 && lNeighborDensity < 140) {
+						link[y][x][n].minDx = 0.9999f;
+						link[y][x][n].maxDx = 1.0001f;
+						link[y][x][n].maxHrzDy = 0.0005f;
+
+						link[y][x][n].minDy = 0.9999f;
+						link[y][x][n].maxDy = 1.0001f;
+						link[y][x][n].maxVrtDx = 0.0005f;
+					}
+					else {
+						link[y][x][n].minDx = 0.99999f;
+						link[y][x][n].maxDx = 1.00001f;
+						link[y][x][n].maxHrzDy = 0.00001f;
+
+						link[y][x][n].minDy = 0.99999f;
+						link[y][x][n].maxDy = 1.00001f;
+						link[y][x][n].maxVrtDx = 0.00001f;
+					}
+					break;
+
+				case Direction::TOP:
+					tNeighborDensity = (y == 0) ? NULL : node[memIdx][y - 1][x].density;
+					if (tNeighborDensity >= 0 && tNeighborDensity < 40) {
+						link[y][x][n].minDx = 0.5f;
+						link[y][x][n].maxDx = 1.5f;
+						link[y][x][n].maxHrzDy = 0.5f;
+
+						link[y][x][n].minDy = 0.5f;
+						link[y][x][n].maxDy = 1.5f;
+						link[y][x][n].maxVrtDx = 0.5f;
+					}
+					else if (tNeighborDensity >= 40 && tNeighborDensity < 100) {
+						link[y][x][n].minDx = 0.95f;
+						link[y][x][n].maxDx = 1.05f;
+						link[y][x][n].maxHrzDy = 0.05f;
+
+						link[y][x][n].minDy = 0.95f;
+						link[y][x][n].maxDy = 1.05f;
+						link[y][x][n].maxVrtDx = 0.05f;
+					}
+					else if (tNeighborDensity >= 100 && tNeighborDensity < 140) {
+						link[y][x][n].minDx = 0.9999f;
+						link[y][x][n].maxDx = 1.0001f;
+						link[y][x][n].maxHrzDy = 0.0005f;
+
+						link[y][x][n].minDy = 0.9999f;
+						link[y][x][n].maxDy = 1.0001f;
+						link[y][x][n].maxVrtDx = 0.0005f;
+					}
+					else {
+						link[y][x][n].minDx = 0.99999f;
+						link[y][x][n].maxDx = 1.00001f;
+						link[y][x][n].maxHrzDy = 0.00001f;
+
+						link[y][x][n].minDy = 0.99999f;
+						link[y][x][n].maxDy = 1.00001f;
+						link[y][x][n].maxVrtDx = 0.00001f;
+					}
+					break;
+
+				case Direction::BOTTOM:
+					bNeighborDensity = (y == ARR_HEIGHT - 1) ? NULL : node[memIdx][y + 1][x].density;
+					if (bNeighborDensity >= 0 && bNeighborDensity < 40) {
+						link[y][x][n].minDx = 0.5f;
+						link[y][x][n].maxDx = 1.5f;
+						link[y][x][n].maxHrzDy = 0.5f;
+
+						link[y][x][n].minDy = 0.5f;
+						link[y][x][n].maxDy = 1.5f;
+						link[y][x][n].maxVrtDx = 0.5f;
+					}
+					else if (bNeighborDensity >= 40 && bNeighborDensity < 100) {
+						link[y][x][n].minDx = 0.95f;
+						link[y][x][n].maxDx = 1.05f;
+						link[y][x][n].maxHrzDy = 0.05f;
+
+						link[y][x][n].minDy = 0.95f;
+						link[y][x][n].maxDy = 1.05f;
+						link[y][x][n].maxVrtDx = 0.05f;
+					}
+					else if (bNeighborDensity >= 100 && bNeighborDensity < 140) {
+						link[y][x][n].minDx = 0.9999f;
+						link[y][x][n].maxDx = 1.0001f;
+						link[y][x][n].maxHrzDy = 0.0005f;
+
+						link[y][x][n].minDy = 0.9999f;
+						link[y][x][n].maxDy = 1.0001f;
+						link[y][x][n].maxVrtDx = 0.0005f;
+					}
+					else {
+						link[y][x][n].minDx = 0.99999f;
+						link[y][x][n].maxDx = 1.00001f;
+						link[y][x][n].maxHrzDy = 0.00001f;
+
+						link[y][x][n].minDy = 0.99999f;
+						link[y][x][n].maxDy = 1.00001f;
+						link[y][x][n].maxVrtDx = 0.00001f;
+					}
+					break;
+				}
 			}
 }
 
@@ -52,8 +229,6 @@ void Chainmail::setTexArr()
 				if (idxY > 0.f && idxY < ARR_HEIGHT)
 					if (idxX > 0.f && idxX < ARR_WIDTH)
 						texArr[idxY][idxX][c] = node[memIdx][y][x].density;
-					else
-						texArr[y][x][c] = 0.0f;
 			}
 }
 
@@ -78,7 +253,9 @@ void Chainmail::movePosition(const int x, const int y, const float mvX, const fl
 
 	propagate();
 	relax();
-	setTexArr();
+	
+	// 갱신된 위치를 텍스쳐 배열에 바른다.
+	setTexArr(); 
 }
 
 // time이 가장 빠른 노드와 방향을 리턴한다.
@@ -117,7 +294,6 @@ const pair<Node, Direction> Chainmail::minTimeNeighborDir(const int x, const int
 
 	return make_pair(minTimeNeighbor, mtnDir);
 }
-
 
 
 // 전파(propagation) 과정
@@ -327,7 +503,7 @@ void Chainmail::relax_sein()
 	// 이 값을 조절하여 부드러운 정도 설정
 	// 동형질의 물질이기 때문에 이렇게 설정가능
 	// 이형질인 경우 노드의 property 등으로 설정해야할 것
-	constexpr float ELASTICITY = 0.7f;
+	//constexpr float ELASTICITY = 0.7f;
 
 	// 원진 누나 ppt 참고(2차원일때 최대 4, 3차원 : 6)
 	constexpr float MAX_F = 4.f;
@@ -363,10 +539,18 @@ void Chainmail::relax_sein()
 
 				// k 값에 대응해야함 현재는 미리 계산하여 적용
 				// 원진 누나 코드 참고
-				//Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
-				//	fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), 0.0f };
-				Vec3 plasticity = { .425f, .425f, 0.0f };
-				plasticity *= (1.f - powf(ELASTICITY, 0.16f));
+				Vec3 plasticity = { fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f),
+					fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), 0.0f };
+
+				// 이형질(heterogeneous)한 경우이므로 elasticity를 정해주어야함
+				// 각 방향의 max-min값중에 가장 작은 값(가장 딱딱한 물체)의 
+				// 부드러운정도를 따르기로 정함
+				float elasticity = fminf(
+					fminf((link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx), (link[y][x][LEFT].maxDx - link[y][x][LEFT].minDx)),
+					fminf((link[y][x][TOP].maxDy - link[y][x][TOP].minDy), (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy))
+				);
+
+				plasticity *= (1.f - powf(elasticity, 0.16f));
 
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
 				float goal_Fx = ((nRPos.x - 1.f) * kRight) + ((nLPos.x + 1.f) * kLeft) + (nTPos.x * kTop) + (nBPos.x * kBottom);

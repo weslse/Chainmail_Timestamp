@@ -16,8 +16,9 @@
 #define WINDOW_W 600
 #define WINDOW_H 600
 
-// 변화할 위치 변수 설정 가능 (빨간색 고리)
-#define TARGET_X 32
+// 변화할 위치 변수 설정 가능
+// (빨간색 고리, 현재 검정색으로 그려짐)
+#define TARGET_X 32	
 #define TARGET_Y 32
 
 // epsilon 상수 값

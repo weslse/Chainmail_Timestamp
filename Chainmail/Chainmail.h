@@ -23,6 +23,7 @@ public:
 	~Chainmail() = default;
 
 	void setNode();
+	void setLink_Homogeneous();
 	void setLink();
 	void setDensity(ubyte**& volume);
 	void setTexArr();
