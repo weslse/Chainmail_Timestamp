@@ -5,13 +5,13 @@ using namespace std;
 // 노드(Point) 초기화
 void Chainmail::setNode()
 {
-	for (int idxP = 0; idxP < NUM_MEMSET; ++idxP) {
+	for (int idxM = 0; idxM < NUM_MEMSET; ++idxM) {
 		for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY) {
 			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX) {
 
-				node[idxP][idxY][idxX].position.x = static_cast<float>(idxX);
-				node[idxP][idxY][idxX].position.y = static_cast<float>(idxY);
-				node[idxP][idxY][idxX].time = 100000.0f;
+				node[idxM][idxY][idxX].position.x = static_cast<float>(idxX);
+				node[idxM][idxY][idxX].position.y = static_cast<float>(idxY);
+				node[idxM][idxY][idxX].time = 100000.0f;
 			}
 		}
 	}
@@ -65,11 +65,11 @@ void Chainmail::setConstranints(const int x, const int y, const Direction n, con
 	else if (nDensity >= 100 && nDensity < 140) {
 		link[y][x][n].minDx = 0.9999f;
 		link[y][x][n].maxDx = 1.0001f;
-		link[y][x][n].maxHrzDy = 0.0005f;
+		link[y][x][n].maxHrzDy = 0.0001f;
 
 		link[y][x][n].minDy = 0.9999f;
 		link[y][x][n].maxDy = 1.0001f;
-		link[y][x][n].maxVrtDx = 0.0005f;
+		link[y][x][n].maxVrtDx = 0.0001f;
 	}
 	// 이외의 더 밀도 높은 경우
 	else {
@@ -129,10 +129,10 @@ void Chainmail::setLink()
 
 void Chainmail::setDensity(const ubyte volumeSlice[ARR_HEIGHT][ARR_WIDTH])
 {
-	for (int idxP = 0; idxP < NUM_MEMSET; ++idxP)
+	for (int idxM = 0; idxM < NUM_MEMSET; ++idxM)
 		for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
 			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
-				node[idxP][idxY][idxX].density = volumeSlice[idxY][idxX];
+				node[idxM][idxY][idxX].density = volumeSlice[idxY][idxX];
 }
 
 void Chainmail::setTexArr()
@@ -143,11 +143,11 @@ void Chainmail::setTexArr()
 
 				int idxX = static_cast<int>(node[memIdx][y][x].position.x);
 				int idxY = static_cast<int>(node[memIdx][y][x].position.y);
-				
+
 				if (idxY > 0 && idxY < ARR_HEIGHT)
 					if (idxX > 0 && idxX < ARR_WIDTH)
 						texArr[idxY][idxX][c] = node[memIdx][y][x].density;
-			
+
 			}
 		}
 	}
@@ -155,10 +155,10 @@ void Chainmail::setTexArr()
 
 void Chainmail::resetTime()
 {
-	for (int idxP = 0; idxP < NUM_MEMSET; ++idxP)
+	for (int idxM = 0; idxM < NUM_MEMSET; ++idxM)
 		for (int idxY = 0; idxY < ARR_HEIGHT; ++idxY)
 			for (int idxX = 0; idxX < ARR_WIDTH; ++idxX)
-				node[idxP][idxY][idxX].time = 100000.0f;
+				node[idxM][idxY][idxX].time = 100000.0f;
 }
 
 // (x', y') = (x + mvX, y + mvY)
@@ -425,7 +425,7 @@ void Chainmail::relax_sein()
 	// 이 값을 조절하여 부드러운 정도 설정
 	// 동형질의 물질이기 때문에 이렇게 설정가능
 	// 이형질인 경우 노드의 property 등으로 설정해야할 것
-	//constexpr float ELASTICITY = 0.7f;
+	// constexpr float ELASTICITY = 0.7f;
 
 	// spring 방법에 비해 반복횟수가 적다.
 	for (int i = 0; i < 3; ++i) {
@@ -458,7 +458,7 @@ void Chainmail::relax_sein()
 
 				// k 값에 대응해야함 현재는 미리 계산하여 적용
 				// 원진 누나 코드 참고
-				Vec3 plasticity = { 
+				Vec3 plasticity = {
 					fminf(link[y][x][RIGHT].maxVrtDx, (link[y][x][RIGHT].maxDx - link[y][x][RIGHT].minDx) * 0.5f), // plasticity.x
 					fminf(link[y][x][BOTTOM].maxHrzDy, (link[y][x][BOTTOM].maxDy - link[y][x][BOTTOM].minDy) * 0.5f), // plasticity.y
 					0.0f // plasticity.z
@@ -478,7 +478,7 @@ void Chainmail::relax_sein()
 				// 임의의 숫자를 사용하여 적절하게 움직일 수 있도록 한다.(ELASTICITY_EXP = 0.16f)
 				// plasticity = plasticity * (1 - (elasticity^0.16f))
 				plasticity *= (1.f - powf(elasticity, ELASTICITY_EXP));
-				
+
 				//plasticity *= (1.f - elasticity * 0.0125f);
 
 				//Vec3 goal_pos = (right - 1 - me)*right.k + (left + 1 - me)*left.k + (top - me)*top.k ...; // 이 식을 축별로 근사
@@ -492,6 +492,8 @@ void Chainmail::relax_sein()
 				Vec3 movF = delta * (kRight + kLeft + kTop + kBottom);
 				float movF_size = movF.getLength();
 				movF.normalize();
+				
+				Vec3 originPos = targetPos;
 
 				// if (mov 가 적당하게 커야만 > T)
 				// 적당하게란 k값에 대응한다. k값이 너무 크면 딱딱한 물체이므로 T는 0에 가까울 것이다.: 세인의 방법
@@ -500,9 +502,33 @@ void Chainmail::relax_sein()
 				if (movF_size > MAX_F * plasticity.y)
 					targetPos.y += ((movF.y * (movF_size - MAX_F * plasticity.y)) * kSumInv);
 
+				// 수정 필요
+				if ((nRPos.x - targetPos.x) < link[y][x][RIGHT].minDx)
+					targetPos.x += link[y][x][RIGHT].minDx;
+				if ((nRPos.x - targetPos.x) > link[y][x][RIGHT].maxDx)
+					targetPos.x -= link[y][x][RIGHT].maxDx;
+
+				if ((targetPos.x - nLPos.x) < link[y][x][LEFT].minDx)
+					targetPos.x += link[y][x][LEFT].minDx;
+				if ((targetPos.x - nLPos.x) > link[y][x][LEFT].maxDx)
+					targetPos.x -= link[y][x][LEFT].maxDx;
+
+				if ((targetPos.y - nTPos.y) < link[y][x][TOP].minDy)
+					targetPos.y += link[y][x][TOP].minDy;
+
+				if ((targetPos.y - nTPos.y) < link[y][x][TOP].maxDy)
+					targetPos.x -= link[y][x][LEFT].maxDx;
+
+				if ((nBPos.y - targetPos.y) > link[y][x][BOTTOM].minDy)
+					targetPos.y += link[y][x][BOTTOM].minDy;
+
+				if ((nBPos.y - targetPos.y) < link[y][x][BOTTOM].maxDy)
+					targetPos.x -= link[y][x][BOTTOM].maxDy;
+
 				// pingpong scheme
 				node[(memIdx + 1) & 1][y][x].position.x = targetPos.x;
 				node[(memIdx + 1) & 1][y][x].position.y = targetPos.y;
+
 			} // end for(x)
 		} // end for(y)
 

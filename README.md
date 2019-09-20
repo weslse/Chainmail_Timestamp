@@ -2,7 +2,7 @@
 
 체인메일 알고리즘을 timestamp를 이용하여 구현
 
-구현 현황 : Propagation O, Relaxation O (모두 Homogeneous한 경우)
+구현 현황 : Propagation O, Relaxation O
 
 
 
